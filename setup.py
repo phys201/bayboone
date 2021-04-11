@@ -7,5 +7,5 @@ setup(name='bayboone',
       author='jybook, tcontrer',
       author_email='jbook@g.harvard.edu, taylorcontreras@g.harvard.edu',
       license='GPLv3',
-      packages=['example'],
+      packages=['bayboone'],
       install_requires=['numpy'])
