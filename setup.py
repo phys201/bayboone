@@ -1,11 +1,11 @@
 from setuptools import setup
 
-setup(name='example',
+setup(name='bayboone',
       version='1.0',
-      description='An example package for Harvard PHYS201',
-      url='http://github.com/phys201/example',
-      author='ralex0',
-      author_email='ralex0@users.noreply.github.com',
+      description='Baysian analysis for MicroBooNE LEE',
+      url='http://github.com/phys201/bayboone',
+      author='jybook, tcontrer',
+      author_email='jbook@g.harvard.edu, taylorcontreras@g.harvard.edu',
       license='GPLv3',
       packages=['example'],
       install_requires=['numpy'])
