@@ -7,5 +7,5 @@ setup(name='bayboone',
       author='jybook, tcontrer',
       author_email='jbook@g.harvard.edu, taylorcontreras@g.harvard.edu',
       license='GPLv3',
-      packages=['example'],
-      install_requires=['numpy'])
+      packages=['bayboone'],
+      install_requires=['numpy, matplotlib, pyplot, pandas, seaborn, emcee, pymc3, uproot'])
