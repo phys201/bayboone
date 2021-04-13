@@ -1,4 +1,4 @@
-from example.inference.prior import UniformPrior, JefferysPrior
+from bayboone.inference.prior import UniformPrior, JefferysPrior
 
 import numpy as np
 
