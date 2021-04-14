@@ -8,4 +8,6 @@ setup(name='bayboone',
       author_email='jbook@g.harvard.edu, taylorcontreras@g.harvard.edu',
       license='GPLv3',
       packages=['bayboone'],
-      install_requires=['numpy, matplotlib, pyplot, pandas, seaborn, emcee, pymc3, uproot'])
+      install_requires=['numpy', 'matplotlib', 'pandas', 'seaborn', 'emcee', 'pymc3'],
+      test_suite='nose.collector',
+      tests_require=['nose'])
