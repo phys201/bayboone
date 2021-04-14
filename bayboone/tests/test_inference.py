@@ -13,6 +13,7 @@ class TestPriors(TestCase):
     def test_jefferys(self):
         assert np.allclose(np.exp(JefferysPrior(10, 1000).logp(100)),
                            0.0021714724095162588)
+    
 
 if __name__ == '__main__':
     unittest.main()
