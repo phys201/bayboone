@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pymc3 as pm
-
+import matplotlib.pyplot as plt
 # Adapted from week 07 notebook
 
 def oscillation_model(fake_data):
@@ -21,7 +21,7 @@ def oscillation_model(fake_data):
     
         # Priors for unknown model parameters
         ss2t = pm.Uniform('sin^2_2theta', 0, 1)
-        dms = pm.Uniform('delta_m^2', 0, 10**(-2))  
+        dms = pm.Uniform('delta_m^2', 0, 0.01)  
         
         # Expected value from theory 
         P = pm.Deterministic('prediction', ss2t*(np.sin(dms*(1.27*L)/E))**2)
@@ -32,7 +32,7 @@ def oscillation_model(fake_data):
         
     return osc_model
 
-def fit_model(data, initial_guess = {'sin^2_2theta':0.1, 'delta_m^2':1}):
+def fit_model(data, initial_guess = {'sin^2_2theta':0.1, 'delta_m^2':0.001}):
     
     uncertainty = 0.3
     osc_model = oscillation_model(data)
@@ -90,6 +90,8 @@ def print_fit_vals(bf, cov):
     vals = { 'value': values}
     fit_values = pd.DataFrame(vals, index = rows)
     fit_values['uncertainty'] = uncertainty
+    
+    print(fit_values)
 
     return fit_values
     
@@ -99,9 +101,9 @@ def do_inference(data):
     import matplotlib.pyplot as plt
     best_fit, cov = fit_model(data)
     data.plot(x='E', y='L', kind='scatter', yerr=0.5)
-    x = np.linspace(min(data['E']), max(data['E']), len(data['E'].size())
+    x = np.linspace(min(data['E']), max(data['E']), len(data['E']))
 
     plt.plot(x, best_fit['prediction'], '-k', color='red')
     print_fit_vals(best_fit, cov)
     
-    return 
+    return
