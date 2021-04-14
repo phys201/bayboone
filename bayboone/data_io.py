@@ -46,3 +46,10 @@ def generative_model(n_points=100):
                         E = E))
     
     return data
+
+def write_simulated_data(filename, data_dir='data', n_points=100):
+    
+    data = generative_model(n_points)
+    data.to_csv(data_dir+'/'+file_name, index=False)
+    
+    return
