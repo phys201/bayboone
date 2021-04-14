@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+import scipy.stats as stats
 
 
 def get_data_file_path(filename, data_dir='data'):
@@ -44,12 +45,17 @@ def generative_model(n_points=100, stheta=0.5, dm=10e-5):
     """
     # Constants set by BNB and Microboone 
     L = 500. # m
-    E_min = 0.1 # GeV # TODO: check with BNB low energy limit
+    E_min = 0.2 # GeV # TODO: check with BNB low energy limit
     E_max = 5.0 # GeV
+    E_mean = (E_min+E_max)/2.
     initial_flux = 10e-4 # nu_mu's/POT/GeV/m^2 # TODO: check with BNB flux
     
     # Generate data points in energy
-    E = np.random.normal((E_max+E_min)/2, size=n_points)
+    sigma = 1.0
+    E = stats.truncnorm(
+            (E_min - E_mean) / sigma, 
+            (E_max - E_mean) / sigma, 
+            loc=E_mean, scale=sigma).rvs(n_points)
     
     # Calculate the probability of oscillation
     P = stheta * np.sin((L/E)*dm)**2
