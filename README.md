@@ -6,8 +6,4 @@ This package is based on the example package produced as a template for assignme
 
 To run the tests, from the main bayboone directory run:
 
-     python -m unittest bayboone/tests/test_inference.py
-     
-     or 
-     
-     python -m unittest bayboone/tests/test_io.py
+    python setup.py test
