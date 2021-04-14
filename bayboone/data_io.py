@@ -48,7 +48,7 @@ def generative_model(n_points=100, stheta=0.5, dm=10e-5):
     E_min = 0.2 # GeV # TODO: check with BNB low energy limit
     E_max = 5.0 # GeV
     E_mean = (E_min+E_max)/2.
-    initial_flux = 10e-4 # nu_mu's/POT/GeV/m^2 # TODO: check with BNB flux
+    initial_flux = 1.0#10e-4 # nu_mu's/POT/GeV/m^2 # TODO: check with BNB flux
     
     # Generate data points in energy
     sigma = 1.0
@@ -58,7 +58,7 @@ def generative_model(n_points=100, stheta=0.5, dm=10e-5):
             loc=E_mean, scale=sigma).rvs(n_points)
     
     # Calculate the probability of oscillation
-    P = stheta * np.sin((L/E)*dm)**2
+    P = stheta * np.sin(1.27*(L/E)*dm)**2
     
     # Calculate the number of muon and electron neutrinos
     N_nue = initial_flux * P

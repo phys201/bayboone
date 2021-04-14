@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 # Adapted from week 07 notebook
 
 def oscillation_model(fake_data):
-    uncertainty = 1.0 
+    uncertainty = 0.1 
     #This is chosen arbitrarily - we'll re-evaluate to get a better value when we work on making our model reflective of reality
 
     # reshape data so it behaves when pymc3 tests multiple parameter values at once
     L = fake_data['L'].values[:, np.newaxis]
     E = fake_data['E'].values[:, np.newaxis]
-    num_neutrinos = fake_data['N_numu']
-    num_nue = fake_data['N_nue']
+    num_neutrinos = fake_data['N_numu_initial'].values[:, np.newaxis]
+    num_nue = fake_data['N_nue'].values[:, np.newaxis]
 
     # The following two lines set up the model, which is a Python object.  
     # "with peaks_model" is called a context manager: It provides a convenient way to set up the object. 
@@ -20,21 +20,22 @@ def oscillation_model(fake_data):
     with osc_model:
     
         # Priors for unknown model parameters
-        ss2t = pm.Uniform('sin^2_2theta', 0, 1)
-        dms = pm.Uniform('delta_m^2', 0, 0.01)  
-        
+        ss2t = pm.Uniform('sin^2_2theta', 0, 1, transform = None)
+        dms = pm.Uniform('delta_m^2', 0, 5.0, transform = None)  
+
         # Expected value from theory 
         P = pm.Deterministic('prediction', ss2t*(np.sin(dms*(1.27*L)/E))**2)
         
         # Likelihood of observations
         # Oscillation from numu to nue is like a weighted coin toss, so we use the binomial distribution
         measurements = pm.Binomial('nue_Flux', n=num_neutrinos, p=P, observed=num_nue)
+        #measurements = pm.Beta('nue_Flux', mu = P, sigma = uncertainty, observed = num_nue, shape=len(fake_data['E']), transform = None)
         
     return osc_model
 
 def fit_model(data, initial_guess = {'sin^2_2theta':0.1, 'delta_m^2':0.001}):
     
-    uncertainty = 0.3
+    uncertainty = 0.003
     osc_model = oscillation_model(data)
     best_fit, scipy_output = pm.find_MAP(model=osc_model, start = initial_guess, return_raw=True)    
     covariance_matrix = np.flip(scipy_output.hess_inv.todense()/uncertainty)
@@ -58,7 +59,7 @@ def chisq(fake_data, prediction):
     float:
         the chi-squared
     '''   
-    uncertainty = 0.3
+    uncertainty = 0.003
     observed = fake_data['N_nue']
     res_squared = np.power(prediction-observed, 2)
     chisq = np.sum(res_squared/uncertainty**2)
@@ -91,7 +92,6 @@ def print_fit_vals(bf, cov):
     fit_values = pd.DataFrame(vals, index = rows)
     fit_values['uncertainty'] = uncertainty
     
-    print(fit_values)
 
     return fit_values
     
