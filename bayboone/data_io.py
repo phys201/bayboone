@@ -131,8 +131,8 @@ class Data:
             L = random.gauss(mu_L, sigma_L)
             E = random.gauss(mu_E, sigma_E)
             P = ss2t * np.sin((1.27*L/E)*dms)**2
-
-            if random.random() > P:
+          
+            if random.random() < P:
                 N_nue += 1
                 
         return N_numu, N_nue
