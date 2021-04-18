@@ -1,79 +1,138 @@
-import os
 import pandas as pd
+import random
+import csv
+import numpy as np
 
-
-def get_example_data_file_path(filename, data_dir='example_data'):
-    # __file__ is the location of the source file currently in use (so
-    # in this case io.py). We can use it as base path to construct
-    # other paths from that should end up correct on other machines or
-    # when the package is installed
-    start = os.path.abspath(__file__)
-    start_dir = os.path.dirname(start)
-    # If you need to go up another directory (for example if you have
-    # this function in your tests directory and your data is in the
-    # package directory one level up) you can use
-    # up_dir = os.path.split(start_dir)[0]
-    data_dir = os.path.join(start_dir, data_dir)
-    return os.path.join(start_dir, data_dir, filename)
-
-
-def load_data(data_file):
-    return pd.read_csv(data_file, sep=' ')
-
-
-def generative_model(n_points=100, stheta=0.5, dm=10e-5):
+class Data:
     """
-    Simulates data based on a generative model of the 4-neutrino
-    oscillation probability. 
-    
-    Inputs:
-        n_points: int
-            The number of data points to generate
-        stheta: float between 0 and 1
-            The oscillation parameter sin^2(2*theta_14)
-        dm: float
-            The oscillation parameter delta(m_14)^2
-            
-    Returns:
-        data: pandas dataframe
-            A dataframe holding the simulated events with columns 
-            for the number of electron neutrinos (N_nue), the 
-            number of muon neutrinos (N_numu), the beam 
-            length (L), the number of initial muon neutrinos 
-            (N_numu_initial), and the beam energy (E)
+    This class can simulate or load data for a neutrino disappearnce
+    short beam line experiment. 
     """
-    # Constants set by BNB and Microboone 
-    L = 500. # m
-    E_min = 0.2 # GeV # TODO: check with BNB low energy limit
-    E_max = 5.0 # GeV
-    E_mean = (E_min+E_max)/2.
-    initial_flux = 10e-4 # nu_mu's/POT/GeV/m^2 # TODO: check with BNB flux
     
-    # Generate data points in energy
-    sigma = 1.0
-    E = stats.truncnorm(
-            (E_min - E_mean) / sigma, 
-            (E_max - E_mean) / sigma, 
-            loc=E_mean, scale=sigma).rvs(n_points)
+    def __init__(self, N_numu, N_nue): 
+        """
+        Inputs
+        ------
+            N_numu: int
+                Number of muon neutrinos shot at the detector.
+            N_nue: int
+                Number of electron neutrinos seen at the detector. 
+        """
+        self.N_numu = N_numu
+        self.N_nue = N_nue
+        
+    @classmethod
+    def load(self, filename):
+        """
+        Creates a Data object based on input from a csv file.
+        Assumes format of file is one line with two numbers (N_numu, N_nue)
+        
+        Inputs
+        ------
+            filename: string
+                The full path and name of the file to be loaded. 
+        """
+        with open(filename, mode='r') as csv_file:
+            csv_reader = csv.reader(csv_file)
+            line_count = 0
+            for row in csv_reader:
+                N_numu = int(row[0])
+                N_nue = int(row[1])
+        
+        return Data(N_numu, N_nue)
+        
+    @classmethod
+    def simulate_microboone(self, N_numu, ss2t, dms):
+        """
+        Creates a Data object with simulated data based on parameters
+        from the microboone detector.
+        
+        Inputs
+        ------
+        N_numu: int
+            Number of muon neutrinos shot at the detector. 
+        ss2t: float between 0 and 1
+            The oscillation paramter sin^2(2*theta)
+        dms: float >= 0
+            The oscillation parameter delta m^2 (squared mass difference)
+        """
+        N_numu, N_nue = self.simulate_data(self, N_numu, ss2t, dms)
+        return Data(N_numu, N_nue)
     
-    # Calculate the probability of oscillation
-    P = stheta * np.sin((L/E)*dm)**2
-    
-    # Calculate the number of muon and electron neutrinos
-    N_nue = initial_flux * P
-    N_numu = initial_flux * (1-P)
-    
-    # Create a data frame to hold the data
-    data = pd.DataFrame(dict(N_numu = N_numu,
-                        N_nue = N_nue,
-                        L = L*np.ones_like(N_numu),
-                        N_numu_initial = initial_flux*np.ones_like(N_numu), 
-                        E = E))
-    
-    return data
 
-def write_simulated_data(filename, data_dir='data', n_points=100, stheta=0.5, dm=10e-5):
-    data = generative_model(n_points)
-    data.to_csv(data_dir+'/'+file_name, index=False)
-    return
+    @classmethod   
+    def simulate_detector(self, N_numu, ss2t, dms, mu_L, mu_E, sigma_L, sigma_E):
+        """
+        Creates a Data object with simulated data based on parameters
+        given for some detector.
+        
+        Inputs
+        ------
+        N_numu: int
+            Number of muon neutrinos shot at the detector. 
+        ss2t: float between 0 and 1
+            The oscillation paramter sin^2(2*theta)
+        dms: float >= 0
+            The oscillation parameter delta m^2 (squared mass difference)
+        mu_L: float >= 0
+            The detector baseline (distance from neutrino beam). For now,
+            I am considering the basline as the average distance traveled
+            by the muon neutrinos. 
+        mu_E: float >= 0
+            The average energy of incoming muon neutrinos. 
+        """
+        N_numu, N_nue = self.simulate_data(self, N_numu, ss2t, dms, mu_L, mu_E, sigma_L, sigma_E)
+        return Data(N_numu, N_nue)
+    
+    def write_data(self, filename, data_dir='data'):
+        """
+        Writes data to a csv file as one line with two 
+        numbers (N_numu, N_nue)
+        
+        Inputs
+        ------
+        filename: string
+            Name of file to be written.
+        data_dir: string
+            Name of directory to output the file.
+        """
+        with open(filename, mode='w') as file:
+            writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow([self.N_numu,self.N_nue])
+        return
 
+    def simulate_data(self, N_numu, ss2t, dms, mu_L=500, mu_E=0.2, sigma_L=10, sigma_E=0.01):
+        """
+        Simulates data of how many muon neutrinos oscillate to electron neutrinos based
+        on given parameters for the experiment detector and beamline. 
+        
+        Inputs
+        ------
+        N_numu: int
+            Number of muon neutrinos shot at the detector. 
+        ss2t: float between 0 and 1
+            The oscillation paramter sin^2(2*theta)
+        dms: float >= 0
+            The oscillation parameter delta m^2 (squared mass difference)
+        mu_L: float >= 0
+            The detector baseline (distance from neutrino beam). For now,
+            I am considering the basline as the average distance traveled
+            by the muon neutrinos. 
+        mu_E: float >= 0
+            The average energy of incoming muon neutrinos.
+        sigma_L: float
+            Standard deviation of beamline, L
+        sigma_E: float
+            Standard deviation of muon neutrino energy, E
+        """
+        
+        N_nue = 0
+        for _ in range(N_numu):
+            L = random.gauss(mu_L, sigma_L)
+            E = random.gauss(mu_E, sigma_E)
+            P = ss2t * np.sin((1.27*L/E)*dms)**2
+
+            if random.random() > P:
+                N_nue += 1
+                
+        return N_numu, N_nue
