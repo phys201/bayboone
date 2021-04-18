@@ -73,11 +73,11 @@ class Data:
             The oscillation paramter sin^2(2*theta)
         dms: float >= 0
             The oscillation parameter delta m^2 (squared mass difference)
-        mu_L: float >= 0
+        mu_L: float >= 0 in meters
             The detector baseline (distance from neutrino beam). For now,
             I am considering the basline as the average distance traveled
             by the muon neutrinos. 
-        mu_E: float >= 0
+        mu_E: float >= 0 in GeV
             The average energy of incoming muon neutrinos. 
         """
         N_numu, N_nue = self.simulate_data(self, N_numu, ss2t, dms, mu_L, mu_E, sigma_L, sigma_E)
@@ -101,7 +101,7 @@ class Data:
         return
 
 
-    def simulate_data(self, N_numu, ss2t, dms, mu_L=500, mu_E=0.2, sigma_L=10, sigma_E=0.01):
+    def simulate_data(self, N_numu, ss2t, dms, mu_L=500, mu_E=1.0, sigma_L=25, sigma_E=0.25):
         """
         Simulates data of how many muon neutrinos oscillate to electron neutrinos based
         on given parameters for the experiment detector and beamline. 
@@ -114,11 +114,11 @@ class Data:
             The oscillation paramter sin^2(2*theta)
         dms: float >= 0
             The oscillation parameter delta m^2 (squared mass difference)
-        mu_L: float >= 0
+        mu_L: float >= 0 in meters
             The detector baseline (distance from neutrino beam). For now,
             I am considering the basline as the average distance traveled
             by the muon neutrinos. 
-        mu_E: float >= 0
+        mu_E: float >= 0 in GeV
             The average energy of incoming muon neutrinos.
         sigma_L: float
             Standard deviation of beamline, L
@@ -131,8 +131,9 @@ class Data:
             L = random.gauss(mu_L, sigma_L)
             E = random.gauss(mu_E, sigma_E)
             P = ss2t * np.sin((1.27*L/E)*dms)**2
-          
-            if random.random() < P:
+            r = random.random()
+
+            if r < P:
                 N_nue += 1
                 
         return N_numu, N_nue
