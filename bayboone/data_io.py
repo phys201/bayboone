@@ -59,7 +59,6 @@ class Data:
         N_numu, N_nue = self.simulate_data(self, N_numu, ss2t, dms)
         return Data(N_numu, N_nue)
     
-
     @classmethod   
     def simulate_detector(self, N_numu, ss2t, dms, mu_L, mu_E, sigma_L, sigma_E):
         """
@@ -100,6 +99,7 @@ class Data:
             writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             writer.writerow([self.N_numu,self.N_nue])
         return
+
 
     def simulate_data(self, N_numu, ss2t, dms, mu_L=500, mu_E=0.2, sigma_L=10, sigma_E=0.01):
         """
