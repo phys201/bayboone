@@ -2,45 +2,72 @@ import numpy as np
 import pandas as pd
 import pymc3 as pm
 import matplotlib.pyplot as plt
+import arviz as az
 # Adapted from week 07 notebook
 
-def oscillation_model(fake_data):
-    uncertainty = 0.1 
-    #This is chosen arbitrarily - we'll re-evaluate to get a better value when we work on making our model reflective of reality
+def oscillation_model(num_neutrinos, num_nue):
+    '''
+    Creates a statistical model for predicting the oscillation parameters from microboone-like values
+    Inputs:
+    num_neutrinos: 
+        The number of muon neutrinos shot at the detector
+    num_nue:
+        The number of electron neutrinos detected
+    Returns:
+    osc_model: pymc3 model
+        the statistical model for our neutrino oscillations
+    '''
+    #Check that the data is reasonable
+    if (num_neutrinos < num_nue):
+        raise ValueError("Error: number of initial neutrinos cannot be less than number of nues observed")
 
-    # reshape data so it behaves when pymc3 tests multiple parameter values at once
-    L = fake_data['L'].values[:, np.newaxis]
-    E = fake_data['E'].values[:, np.newaxis]
-    num_neutrinos = fake_data['N_numu_initial'].values[:, np.newaxis]
-    num_nue = fake_data['N_nue'].values[:, np.newaxis]
-
-    # The following two lines set up the model, which is a Python object.  
-    # "with peaks_model" is called a context manager: It provides a convenient way to set up the object. 
     osc_model = pm.Model()
     with osc_model:
     
         # Priors for unknown model parameters
-        ss2t = pm.Uniform('sin^2_2theta', 0, 1, transform = None)
-        dms = pm.Uniform('delta_m^2', 0, 5.0, transform = None)  
+        ss2t = pm.Uniform('sin^2_2theta', 0, 1)
+        dms = pm.Uniform('delta_m^2', 0, 10.0) #units of ev^2
+        # We don't know the exact energy or production point of each neutrino, so we draw from a gaussian 
+        #L_over_E = pm.Normal('L_over_E', mu = 0.5, sigma = 0.1 ) #units of km/Gev
+        L = pm.Normal('L', mu = 0.500, sigma = 0.025) #units of km
+        E = pm.Normal('E', mu = 1.0, sigma = 0.25) #units of GeV
 
         # Expected value from theory 
         P = pm.Deterministic('prediction', ss2t*(np.sin(dms*(1.27*L)/E))**2)
+        #P = pm.Deterministic('prediction', ss2t*(np.sin(dms*L_over_E))**2)
         
         # Likelihood of observations
         # Oscillation from numu to nue is like a weighted coin toss, so we use the binomial distribution
         measurements = pm.Binomial('nue_Flux', n=num_neutrinos, p=P, observed=num_nue)
-        #measurements = pm.Beta('nue_Flux', mu = P, sigma = uncertainty, observed = num_nue, shape=len(fake_data['E']), transform = None)
         
     return osc_model
 
-def fit_model(data, initial_guess = {'sin^2_2theta':0.1, 'delta_m^2':0.001}):
-    
-    uncertainty = 0.003
-    osc_model = oscillation_model(data)
+def fit_model(data, initial_guess = {'sin^2_2theta':[0.1], 'delta_m^2':[1.0], 'L':[0.5], 'E':[0.9]}):
+    num_neutrinos = data[0]
+    num_nue = data[1]
+    uncertainty = np.sqrt(num_nue)
+    osc_model = oscillation_model(num_neutrinos, num_nue)
     best_fit, scipy_output = pm.find_MAP(model=osc_model, start = initial_guess, return_raw=True)    
     covariance_matrix = np.flip(scipy_output.hess_inv.todense()/uncertainty)
     
     return best_fit, covariance_matrix
+
+def new_fit_model(data):
+    '''Fits a given model to data provided
+    Inputs:
+    data: two floats
+        the number of muon neutrinos produced (data[0]) and e- neutrinos detected (data[1])'''
+    
+    num_neutrinos = data[0]
+    num_nue = data[1]
+    uncertainty = np.sqrt(num_nue)
+    osc_model = oscillation_model(num_neutrinos, num_nue)
+    
+    with osc_model:
+        trace = pm.sample(5000)
+        az.plot_trace(trace)
+        
+    return trace
 
 def chisq(fake_data, prediction):
     '''
@@ -86,7 +113,10 @@ def print_fit_vals(bf, cov):
 
     values[1] = bf['delta_m^2']
     rows[1] = 'delta_m^2'
+    #values[1]= bf['dmsL_over_E']
+    #rows[1] = 'dmsL_over_E'
     uncertainty[1] = np.sqrt(cov[1][1])
+    #We don't report values for our nusiance parameters in this function
     
     vals = { 'value': values}
     fit_values = pd.DataFrame(vals, index = rows)
