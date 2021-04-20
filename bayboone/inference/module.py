@@ -26,11 +26,11 @@ def oscillation_model(num_neutrinos, num_nue):
     
         # Priors for unknown model parameters
         ss2t = pm.Uniform('sin^2_2theta', 0, 1)
-        dms = pm.Uniform('delta_m^2', 0, 10.0) #units of ev^2
-        # We don't know the exact energy or production point of each neutrino, so we draw from a gaussian 
+        dms = pm.Uniform('delta_m^2', 0, 1.0) #units of ev^2
+        # We don't know the exact energy or production point of each neutrino, so we draw from a truncated  gaussian (enforcing positive distance travelled and energy)
         #L_over_E = pm.Normal('L_over_E', mu = 0.5, sigma = 0.1 ) #units of km/Gev
-        L = pm.Normal('L', mu = 0.500, sigma = 0.025) #units of km
-        E = pm.Normal('E', mu = 1.0, sigma = 0.25) #units of GeV
+        L = pm.TruncatedNormal('L', mu = 0.500, sigma = 0.05, lower = 0) #units of km
+        E = pm.TruncatedNormal('E', mu = 1.0, sigma = 0.05, lower = 0) #units of GeV
 
         # Expected value from theory 
         #P = pm.Deterministic('prediction', ss2t*(np.sin(dms*(1.27*L)/E))**2)
@@ -41,22 +41,12 @@ def oscillation_model(num_neutrinos, num_nue):
         # Rate parameter calculated form theory
         rate = pm.Deterministic('rate', num_neutrinos*ss2t*(np.sin(dms*(1.27*L)/E))**2)
         
-        #Lieklihood of observations
+        #Likelihood of observations
         measurements = pm.Poisson('nue_flux', mu = rate, observed = num_nue)
         
     return osc_model
 
-def fit_model(data, initial_guess = {'sin^2_2theta':[0.1], 'delta_m^2':[1.0], 'L':[0.5], 'E':[0.9]}):
-    num_neutrinos = data[0]
-    num_nue = data[1]
-    uncertainty = np.sqrt(num_nue)
-    osc_model = oscillation_model(num_neutrinos, num_nue)
-    best_fit, scipy_output = pm.find_MAP(model=osc_model, start = initial_guess, return_raw=True)    
-    covariance_matrix = np.flip(scipy_output.hess_inv.todense()/uncertainty)
-    
-    return best_fit, covariance_matrix
-
-def new_fit_model(data):
+def fit_model(data):
     '''Fits a given model to data provided
     Inputs:
     data: two floats
@@ -68,7 +58,7 @@ def new_fit_model(data):
     osc_model = oscillation_model(num_neutrinos, num_nue)
     
     with osc_model:
-        trace = pm.sample(5000)
+        trace = pm.sample(10000)
         az.plot_trace(trace)
         
     return trace
