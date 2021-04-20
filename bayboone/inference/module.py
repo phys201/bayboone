@@ -33,12 +33,16 @@ def oscillation_model(num_neutrinos, num_nue):
         E = pm.Normal('E', mu = 1.0, sigma = 0.25) #units of GeV
 
         # Expected value from theory 
-        P = pm.Deterministic('prediction', ss2t*(np.sin(dms*(1.27*L)/E))**2)
-        #P = pm.Deterministic('prediction', ss2t*(np.sin(dms*L_over_E))**2)
-        
+        #P = pm.Deterministic('prediction', ss2t*(np.sin(dms*(1.27*L)/E))**2)
         # Likelihood of observations
-        # Oscillation from numu to nue is like a weighted coin toss, so we use the binomial distribution
-        measurements = pm.Binomial('nue_Flux', n=num_neutrinos, p=P, observed=num_nue)
+        # measurements = pm.Binomial('nue_Flux', n=num_neutrinos, p=P, observed=num_nue)
+        
+        # In the large n limit, because the number of oscillations is low, we use a Poisson approximation
+        # Rate parameter calculated form theory
+        rate = pm.Deterministic('rate', num_neutrinos*ss2t*(np.sin(dms*(1.27*L)/E))**2)
+        
+        #Lieklihood of observations
+        measurements = pm.Poisson('nue_flux', mu = rate, observed = num_nue)
         
     return osc_model
 
@@ -122,11 +126,10 @@ def print_fit_vals(bf, cov):
     fit_values = pd.DataFrame(vals, index = rows)
     fit_values['uncertainty'] = uncertainty
     
-
     return fit_values
     
 def do_inference(data):
-    'an easy function to call that infers values of ss2t, dms, from a given data set, for use in the tutorial'
+    'an easy function to call that infers values of ss2t, dms, from a given data set'
     
     import matplotlib.pyplot as plt
     best_fit, cov = fit_model(data)
