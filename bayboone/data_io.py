@@ -101,7 +101,7 @@ class Data:
         return
 
 
-    def simulate_data(self, N_numu, ss2t, dms, mu_L=0.5, mu_E=1.0, sigma_L=.025, sigma_E=0.25):
+    def simulate_data(self, N_numu, ss2t, dms, mu_L=0.5, mu_E=1.0, sigma_L=.025, sigma_E=0.25, random_seed=True):
         """
         Simulates data of how many muon neutrinos oscillate to electron neutrinos based
         on given parameters for the experiment detector and beamline. 
@@ -125,15 +125,18 @@ class Data:
         sigma_E: float
             Standard deviation of muon neutrino energy, E
         """
+        if not random_seed:
+            np.random.seed(random_seed)
         
         N_nue = 0
         for _ in range(N_numu):
             L = random.gauss(mu_L, sigma_L)
             E = random.gauss(mu_E, sigma_E)
             P = ss2t * np.sin((1.27*L/E)*dms)**2
-            r = random.random()
+            r = np.random.random()
 
             if r < P:
                 N_nue += 1
                 
+        print('Data: ',N_numu, N_nue)
         return N_numu, N_nue
