@@ -101,7 +101,7 @@ class Data:
         return
 
 
-    def simulate_data(self, N_numu, ss2t, dms, mu_L=500, mu_E=1.0, sigma_L=25, sigma_E=0.25):
+    def simulate_data(self, N_numu, ss2t, dms, mu_L=0.5, mu_E=1.0, sigma_L=.025, sigma_E=0.25):
         """
         Simulates data of how many muon neutrinos oscillate to electron neutrinos based
         on given parameters for the experiment detector and beamline. 
@@ -114,7 +114,7 @@ class Data:
             The oscillation paramter sin^2(2*theta)
         dms: float >= 0
             The oscillation parameter delta m^2 (squared mass difference)
-        mu_L: float >= 0 in meters
+        mu_L: float >= 0 in km
             The detector baseline (distance from neutrino beam). For now,
             I am considering the basline as the average distance traveled
             by the muon neutrinos. 
