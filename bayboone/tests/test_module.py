@@ -30,20 +30,20 @@ class TestInference(TestCase):
     trace = module.fit_model(num_numu, num_nue, 1000)
     
     def test_fit_model_returns_trace(self):
-        self.assertTrue(isinstance(trace, az.InferenceData))    
+        self.assertTrue(isinstance(TestInference.trace, az.InferenceData) or isinstance(TestInference.trace, pm.backends.base.MultiTrace))    
         
     def test_inference_returns_physical_values(self):
         # We're still working on improving the statistical model to get one that's both correct and does the inference well
         # (See ongoing discussion in group 6 slack channel)
         # In the meantime, we'll just make sure it returns physical values
         
-        df_trace = pm.trace_to_dataframe(trace)
-        q = df_trace.quantile([0.16,0.50,0.84], axis=0)
+        df_trace = pm.trace_to_dataframe(TestInference.trace)
         df_trace['delta_m^2'] = np.exp(df_trace['log_delta_m^2'])
-        self.assertTrue(q['delta_m^2'][0.84]<1 and q['delta_m^2'][0.16]>0.01)
-        self.assertTrue(q['sin^2_2theta'][0.84]<1 and q['sin^2_2theta'][0.16]<0.0001)
+        q = df_trace.quantile([0.16,0.50,0.84], axis=0)
+        self.assertTrue(q['delta_m^2'][0.50]<1 and q['delta_m^2'][0.50]>0.01)
+        self.assertTrue(q['sin^2_2theta'][0.50]<1 and q['sin^2_2theta'][0.50]>0.0001)
         
     def test_prints_fitvals(self):
-        self.assertTrue(module.print_fit_vals(trace))
+        self.assertTrue(module.print_fit_vals(TestInference.trace))
     
    
