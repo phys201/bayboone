@@ -62,9 +62,10 @@ def fit_model(num_neutrinos, num_nue, num_draws = 1000):
         '''
     uncertainty = np.sqrt(num_nue)
     osc_model = oscillation_model(num_neutrinos, num_nue)
+    initial_guess = {'L': 0.5, 'E': 0.5, 'sin^2_2theta': 0.3, 'log_delta_m^2': 0}
     
     with osc_model:
-        trace = pm.sample(num_draws)
+        trace = pm.sample(num_draws, start=initial_guess)
         az.plot_trace(trace)
         
     return trace
