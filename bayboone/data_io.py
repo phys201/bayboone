@@ -132,7 +132,7 @@ class Data:
         for _ in range(N_numu):
             L = random.gauss(mu_L, sigma_L)
             E = random.gauss(mu_E, sigma_E)
-            P = ss2t * np.sin((1.27*L/E)*dms)**2
+            P = OscProbability(ss2t, dms, L, E)
             r = np.random.random()
 
             if r < P:
@@ -140,3 +140,26 @@ class Data:
                 
         print('Data: ',N_numu, N_nue)
         return N_numu, N_nue
+    
+def OscProbability(ss2t, dms, L, E):
+    """
+    Returns the oscillation probability of a muon neutrino to an 
+    electron neutrino for given experiment and oscillation parameters.
+
+    Inputs 
+    ------
+    ss2t: float between 0 and 1
+            The oscillation paramter sin^2(2*theta)
+        dms: float >= 0
+            The oscillation parameter delta m^2 (squared mass difference)
+        L: float >= 0 in km
+            Distance the muon neutrino traveled.
+        E: float >= 0 in GeV
+            Energy of incoming muon neutrino.
+
+    Returns
+    -------
+        Oscillation probability (float between 0 and 1)
+
+    """
+    return ss2t * np.sin((1.27*L/E)*dms)**2
