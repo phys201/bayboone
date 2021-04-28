@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pymc3 as pm
 import matplotlib.pyplot as plt
-import arviz as az
+from numpy.linalg import inv, eigh, det
 # Adapted from week 07 notebook
 
 def oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8):
@@ -61,6 +61,8 @@ def fit_model(num_neutrinos, num_nue, num_draws = 10000):
         e- neutrinos detected
     num_draws: int
         number of samples to draw
+    model: int (3 or 4)
+        The model of either 3 or 4 neutrinos
 
     Returns:
     trace: arviz InferenceData object
@@ -70,7 +72,6 @@ def fit_model(num_neutrinos, num_nue, num_draws = 10000):
     uncertainty = np.sqrt(num_nue)
     osc_model = oscillation_model(num_neutrinos, num_nue)
     initial_guess = {'L': 0.5, 'E': 0.5, 'sin^2_2theta': 0.3, 'delta_m^2': 1}
-
     with osc_model:
         trace = pm.sample(num_draws, start=initial_guess)
 
@@ -99,13 +100,81 @@ def print_fit_vals(trace):
     return True
 
 
-def model_comparison(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8):
+uncertainty = 0.1
+def run_fit(initial_guess, model):
     """
-    Does the model comparison
+    performs fit of a given model
+    
+    Parameters: 
+        initial_guess: dictionary containing initial guess values
+    Returns:
+        best_fit: dictionary containing best fit values, covariance matrix, forward function and inital guess values
     """
-    model_4 = oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8)
-    model_SM = oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.0, est_dms = 0.0)
+    best_fit, scipy_output = pm.find_MAP(model=model, start = initial_guess, return_raw=True)
+    covariance_matrix = np.flip(scipy_output.hess_inv.todense()/uncertainty)
 
-    odds_ratio = model_4.rate/model_SM.rate
+    best_fit['covariance matrix'] = covariance_matrix
+    best_fit['forward function'] = model.fn(model['rate'])
+    best_fit['initial guess'] = initial_guess
+    return best_fit
 
-    return odds_ratio
+def calc_residuals(data, best_fit):
+    """
+    calculates the residuals of a given fit 
+    
+    Parameters:
+        best_fit: dictionary containing best fit values (must contain 'prediction')
+    Returns:
+        ndarray of residuals 
+    """
+    return data.N_nue - best_fit['rate'].flatten()*data.N_numu
+
+def calc_chi_squared(data,best_fit):
+    """
+    calculates chi squared for a given fit
+    
+    Parameters: 
+        best_fit: dictionary containing best fit values
+    Returns: 
+        chi squared value (float)
+    """
+    residuals = calc_residuals(data,best_fit)/uncertainty
+    return np.sum(residuals**2)
+
+def global_log_likelihood(data, best_fit):
+    """
+    calculates the global log likelihood for a given fit
+    
+    Parameters:
+        best_fit: dictionary containing best fit values
+    Returns: 
+        global log likelihood (float)
+    """
+    n_parameters = len(best_fit['initial guess'])
+    chi_squared = calc_chi_squared(data, best_fit)
+    max_likelihood =  np.exp(-chi_squared/2) / (2 * np.pi * uncertainty**2) ** (1/2)
+    curvature = np.sqrt(det(best_fit['covariance matrix'])) * (2 * np.pi) **  (n_parameters/2)
+
+    #n_peaks = int((n_parameters - 1) / 2)
+    #prior_L = 1 / np.ptp(d['L'])
+    #prior_peak_center = 1 / np.ptp(data11_1['f']) ** n_peaks
+    log_prior = 0 #np.log(prior_background * prior_peak_height * prior_peak_center)
+
+    return np.log(max_likelihood) + np.log(curvature) + log_prior
+
+def compute_odds(data,best_fit, previous_fit):
+    """
+    calculates the odds ratio between two fits (current/previous)
+    
+    Parameters: 
+        best_fit: dictionary containing best fit values of current model
+        previous_fit: dictionary containing best fit values of the previous model 
+    Returns:
+        nothing; prints global likelihood of current model and odds ratio
+    """
+    previous_log_like = global_log_likelihood(data,previous_fit)
+    current_log_like = global_log_likelihood(data,best_fit)
+    odds = np.exp(current_log_like - previous_log_like)
+    print("\nGlobal likelihood:\n{}".format(np.exp(current_log_like)))
+    print("A model that includes a fourth neutrino is favored by a factor of {:.0f} compared to one that doesn't.".format(odds))
+
