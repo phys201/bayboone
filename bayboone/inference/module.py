@@ -74,7 +74,6 @@ def fit_model(num_neutrinos, num_nue, num_draws = 10000):
     
     with osc_model:
         trace = pm.sample(num_draws, start=initial_guess)
-        az.plot_trace(trace)
         
     return trace
                          
