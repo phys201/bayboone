@@ -25,7 +25,7 @@ class TestIo(TestCase):
         Tests the that write_data and load funcion correctly
         """
         data = Data(10,5)
-        data.write_data('testing.csv')
+        data.write_data('testing.csv', '')
         data = Data.load('testing.csv')
         assert data.N_numu == 10
         assert data.N_nue == 5
