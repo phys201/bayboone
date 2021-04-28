@@ -46,7 +46,6 @@ def oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8):
         rate = pm.Deterministic('rate', num_neutrinos*ss2t*(np.sin(dms*(1.27*L)/E))**2)
         #rate = pm.Deterministic('rate', num_neutrinos*ss2t*(np.sin(np.exp(log_dms)*(1.27*L)/E))**2)
         
-        #Likelihood of observations
         measurements = pm.Poisson('nue_flux', mu = rate, observed = num_nue)
         
     return osc_model
@@ -74,7 +73,7 @@ def fit_model(num_neutrinos, num_nue, num_draws = 10000):
     
     with osc_model:
         trace = pm.sample(num_draws, start=initial_guess)
-        az.plot_trace(trace)
+        #az.plot_trace(trace)
         
     return trace
                          
@@ -100,3 +99,14 @@ def print_fit_vals(trace):
     
     return True
     
+    
+def model_comparison(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8):
+    """
+    Does the model comparison
+    """
+    model_4 = oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8)
+    model_SM = oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.0, est_dms = 0.0)
+ 
+    odds_ratio = model_4.rate/model_SM.rate
+    
+    return odds_ratio
