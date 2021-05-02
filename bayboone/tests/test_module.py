@@ -47,4 +47,3 @@ class TestInference(TestCase):
     def test_prints_fitvals(self):
         self.assertTrue(module.print_fit_vals(TestInference.trace))
     
-   

@@ -23,7 +23,7 @@ class Data:
         self.N_nue = N_nue
         
     @classmethod
-    def load(self, filename):
+    def load(self, filename, data_dir='data'):
         """
         Creates a Data object based on input from a csv file.
         Assumes format of file is one line with two numbers (N_numu, N_nue)
@@ -85,7 +85,7 @@ class Data:
         N_numu, N_nue = self.simulate_data(self, N_numu, ss2t, dms, mu_L, mu_E, sigma_L, sigma_E)
         return Data(N_numu, N_nue)
     
-    def write_data(self, filename, data_dir='data/'):
+    def write_data(self, filename, data_dir='data'):
         """
         Writes data to a csv file as one line with two 
         numbers (N_numu, N_nue)
@@ -97,8 +97,9 @@ class Data:
         data_dir: string
             Name of directory to output the file.
         """
-        
-        with open(data_dir+filename, mode='w') as file:
+        data_dir = os.path.join(get_data_dir(data_dir))
+        file_path = os.path.join(data_dir, filename)
+        with open(file_path, mode='w') as file:
             writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             writer.writerow([self.N_numu,self.N_nue])
         return
@@ -168,15 +169,36 @@ def OscProbability(ss2t, dms, L, E):
     return ss2t * np.sin((1.27*L/E)*dms)**2
 
 def get_data_file_path(filename, data_dir='data'):
-    # __file__ is the location of the source file currently in use (so
-    # in this case io.py). We can use it as base path to construct
-    # other paths from that should end up correct on other machines or
-    # when the package is installed
+    """
+    Returns file path given a data directory.
+    
+    Inputs
+    ------
+    filename (str): name of the file
+    data_dir (str): name of data directory
+    
+    Returns
+    -------
+        The absolute file path
+    """
+    # __file__ is the location of the source file currently in use
     start = os.path.abspath(__file__)
     start_dir = os.path.dirname(start)
-    # If you need to go up another directory (for example if you have
-    # this function in your tests directory and your data is in the
-    # package directory one level up) you can use
-    # up_dir = os.path.split(start_dir)[0]
     data_dir = os.path.join(start_dir, data_dir)
     return os.path.join(start_dir, data_dir, filename)
+
+def get_data_dir(data_dir='data'):
+    """
+    Returns the data directory.
+    
+    Inputs
+    -------
+    data_dir (str): name of data directory
+    
+    Returns
+    -------
+        The data directory path
+    """
+    start = os.path.abspath(__file__)
+    start_dir = os.path.dirname(start)
+    return os.path.join(start_dir, data_dir)
