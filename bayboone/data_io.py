@@ -13,25 +13,29 @@ class Data:
     def __init__(self, N_numu, N_nue): 
         """
         Inputs
-        ------
             N_numu: int
                 Number of muon neutrinos shot at the detector.
             N_nue: int
                 Number of electron neutrinos seen at the detector. 
+                
+        Returns
+            None
         """
         self.N_numu = N_numu
         self.N_nue = N_nue
         
     @classmethod
-    def load(self, filename):
+    def load(self, filename, data_dir='data'):
         """
         Creates a Data object based on input from a csv file.
         Assumes format of file is one line with two numbers (N_numu, N_nue)
         
         Inputs
-        ------
             filename: string
                 The full path and name of the file to be loaded. 
+                
+        Returns
+            A Data object
         """
         filepath = get_data_file_path(filename)
         with open(filepath, mode='r') as csv_file:
@@ -50,13 +54,15 @@ class Data:
         from the microboone detector.
         
         Inputs
-        ------
-        N_numu: int
-            Number of muon neutrinos shot at the detector. 
-        ss2t: float between 0 and 1
-            The oscillation paramter sin^2(2*theta)
-        dms: float >= 0
-            The oscillation parameter delta m^2 (squared mass difference)
+            N_numu: int
+                Number of muon neutrinos shot at the detector. 
+            ss2t: float between 0 and 1
+                The oscillation paramter sin^2(2*theta)
+            dms: float >= 0
+                The oscillation parameter delta m^2 (squared mass difference)
+            
+        Returns
+            A Data object
         """
         N_numu, N_nue = self.simulate_data(self, N_numu, ss2t, dms)
         return Data(N_numu, N_nue)
@@ -68,37 +74,42 @@ class Data:
         given for some detector.
         
         Inputs
-        ------
-        N_numu: int
-            Number of muon neutrinos shot at the detector. 
-        ss2t: float between 0 and 1
-            The oscillation paramter sin^2(2*theta)
-        dms: float >= 0
-            The oscillation parameter delta m^2 (squared mass difference)
-        mu_L: float >= 0 in meters
-            The detector baseline (distance from neutrino beam). For now,
-            I am considering the basline as the average distance traveled
-            by the muon neutrinos. 
-        mu_E: float >= 0 in GeV
-            The average energy of incoming muon neutrinos. 
+            N_numu: int
+                Number of muon neutrinos shot at the detector. 
+            ss2t: float between 0 and 1
+                The oscillation paramter sin^2(2*theta)
+            dms: float >= 0
+                The oscillation parameter delta m^2 (squared mass difference)
+            mu_L: float >= 0 in meters
+                The detector baseline (distance from neutrino beam). For now,
+                I am considering the basline as the average distance traveled
+                by the muon neutrinos. 
+            mu_E: float >= 0 in GeV
+                The average energy of incoming muon neutrinos. 
+            
+        Returns
+            A Data object
         """
         N_numu, N_nue = self.simulate_data(self, N_numu, ss2t, dms, mu_L, mu_E, sigma_L, sigma_E)
         return Data(N_numu, N_nue)
     
-    def write_data(self, filename, data_dir='data/'):
+    def write_data(self, filename, data_dir='data'):
         """
         Writes data to a csv file as one line with two 
         numbers (N_numu, N_nue)
         
         Inputs
-        ------
-        filename: string
-            Name of file to be written.
-        data_dir: string
-            Name of directory to output the file.
+            filename: string
+                Name of file to be written.
+            data_dir: string
+                Name of directory to output the file.
+            
+        Returns
+            None
         """
-        
-        with open(data_dir+filename, mode='w') as file:
+        data_dir = os.path.join(get_data_dir(data_dir))
+        file_path = os.path.join(data_dir, filename)
+        with open(file_path, mode='w') as file:
             writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             writer.writerow([self.N_numu,self.N_nue])
         return
@@ -110,23 +121,27 @@ class Data:
         on given parameters for the experiment detector and beamline. 
         
         Inputs
-        ------
-        N_numu: int
-            Number of muon neutrinos shot at the detector. 
-        ss2t: float between 0 and 1
-            The oscillation paramter sin^2(2*theta)
-        dms: float >= 0
-            The oscillation parameter delta m^2 (squared mass difference)
-        mu_L: float >= 0 in km
-            The detector baseline (distance from neutrino beam). For now,
-            I am considering the basline as the average distance traveled
-            by the muon neutrinos. 
-        mu_E: float >= 0 in GeV
-            The average energy of incoming muon neutrinos.
-        sigma_L: float
-            Standard deviation of beamline, L
-        sigma_E: float
-            Standard deviation of muon neutrino energy, E
+            N_numu: int
+                Number of muon neutrinos shot at the detector. 
+            ss2t: float between 0 and 1
+                The oscillation paramter sin^2(2*theta)
+            dms: float >= 0
+                The oscillation parameter delta m^2 (squared mass difference)
+            mu_L: float >= 0 in km
+                The detector baseline (distance from neutrino beam). For now,
+                I am considering the basline as the average distance traveled
+                by the muon neutrinos. 
+            mu_E: float >= 0 in GeV
+                The average energy of incoming muon neutrinos.
+            sigma_L: float
+                Standard deviation of beamline, L
+            sigma_E: float
+                Standard deviation of muon neutrino energy, E
+            
+        Returns
+            (N_numu, N_nue): tuple of integers
+                The number of muon neutrinos and the number of 
+                electron neutrinos
         """
         if not random_seed:
             np.random.seed(random_seed)
@@ -150,8 +165,7 @@ def OscProbability(ss2t, dms, L, E):
     electron neutrino for given experiment and oscillation parameters.
 
     Inputs 
-    ------
-    ss2t: float between 0 and 1
+        ss2t: float between 0 and 1
             The oscillation paramter sin^2(2*theta)
         dms: float >= 0
             The oscillation parameter delta m^2 (squared mass difference)
@@ -161,22 +175,39 @@ def OscProbability(ss2t, dms, L, E):
             Energy of incoming muon neutrino.
 
     Returns
-    -------
         Oscillation probability (float between 0 and 1)
 
     """
     return ss2t * np.sin((1.27*L/E)*dms)**2
 
 def get_data_file_path(filename, data_dir='data'):
-    # __file__ is the location of the source file currently in use (so
-    # in this case io.py). We can use it as base path to construct
-    # other paths from that should end up correct on other machines or
-    # when the package is installed
+    """
+    Returns file path given a data directory.
+    
+    Inputs
+        filename (str): name of the file
+        data_dir (str): name of data directory
+    
+    Returns
+        The absolute file path: str
+    """
+    # __file__ is the location of the source file currently in use
     start = os.path.abspath(__file__)
     start_dir = os.path.dirname(start)
-    # If you need to go up another directory (for example if you have
-    # this function in your tests directory and your data is in the
-    # package directory one level up) you can use
-    # up_dir = os.path.split(start_dir)[0]
     data_dir = os.path.join(start_dir, data_dir)
     return os.path.join(start_dir, data_dir, filename)
+
+def get_data_dir(data_dir='data'):
+    """
+    Returns the data directory.
+    
+    Inputs
+        data_dir: str
+            Name of data directory
+    
+    Returns
+        The data directory path: str
+    """
+    start = os.path.abspath(__file__)
+    start_dir = os.path.dirname(start)
+    return os.path.join(start_dir, data_dir)

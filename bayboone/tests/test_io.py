@@ -2,6 +2,7 @@ from unittest import TestCase
 from bayboone.data_io import Data
 import random
 import numpy as np
+import os
 
 class TestIo(TestCase):
     
@@ -25,8 +26,8 @@ class TestIo(TestCase):
         Tests the that write_data and load funcion correctly
         """
         data = Data(10,5)
-        data.write_data('testing.csv', '')
-        data = Data.load('testing.csv')
+        data.write_data('test_data.csv')
+        data = Data.load('test_data.csv') 
         assert data.N_numu == 10
         assert data.N_nue == 5
         
@@ -68,6 +69,7 @@ class TestIo(TestCase):
         data = Data.simulate_microboone(0, 1.0, 1)
         assert data.N_numu == 0
         assert data.N_nue == 0
+
         
         
         

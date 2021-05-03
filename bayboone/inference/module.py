@@ -8,18 +8,20 @@ from numpy.linalg import inv, eigh, det
 def oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8):
     '''
     Creates a statistical model for predicting the oscillation parameters from microboone-like values
-    Inputs:
-    num_neutrinos:
-        The number of muon neutrinos shot at the detector
-    num_nue:
-        The number of electron neutrinos detected
-    est_ss2t: float between 0 and 1
-        estimated ss2t from previous experiments, for use in the prior
-    est_dms: float above 0
-        estimated dms from previous experiments, also for use in prior
-    Returns:
-    osc_model: pymc3 model
-        the statistical model for our neutrino oscillations in the 3+1 model
+    
+    Inputs
+        num_neutrinos:
+            The number of muon neutrinos shot at the detector
+        num_nue:
+            The number of electron neutrinos detected
+        est_ss2t: float between 0 and 1
+            estimated ss2t from previous experiments, for use in the prior
+        est_dms: float above 0
+            estimated dms from previous experiments, also for use in prior
+            
+    Returns
+        osc_model: pymc3 model
+            the statistical model for our neutrino oscillations in the 3+1 model
     '''
     #Check that the data is reasonable
     if (num_neutrinos < num_nue):
@@ -54,21 +56,21 @@ def fit_model(num_neutrinos, num_nue, num_draws = 10000):
     '''
     Fits a given model to data provided using MCMC sampling
 
-    Inputs:
-    num_neutrinos: float
-        the number of muon neutrinos produced
-    num_nue: number of electron neutrinos detected
-        e- neutrinos detected
-    num_draws: int
-        number of samples to draw
-    model: int (3 or 4)
-        The model of either 3 or 4 neutrinos
+    Inputs
+        num_neutrinos: float
+            the number of muon neutrinos produced
+        num_nue: number of electron neutrinos detected
+            e- neutrinos detected
+        num_draws: int
+            number of samples to draw
+        model: int (3 or 4)
+            The model of either 3 or 4 neutrinos
 
-    Returns:
-    trace: arviz InferenceData object
-        results of the mcmc sampling procedure
+    Returns
+        trace: arviz InferenceData object
+            results of the mcmc sampling procedure
 
-        '''
+    '''
     uncertainty = np.sqrt(num_nue)
     osc_model = oscillation_model(num_neutrinos, num_nue)
     initial_guess = {'L': 0.5, 'E': 0.5, 'sin^2_2theta': 0.3, 'delta_m^2': 1}
@@ -80,11 +82,11 @@ def fit_model(num_neutrinos, num_nue, num_draws = 10000):
 def print_fit_vals(trace):
 
     '''
-    literally just prints the best fit values and their uncertainties nicely
+    Prints the best fit values and their uncertainties nicely
 
-    Inputs:
-    trace: arviz InferenceData object
-        Holds the results from the mcmc sampling procedure
+    Inputs
+        trace: arviz InferenceData object
+            Holds the results from the mcmc sampling procedure
 
     '''
     df_trace = pm.trace_to_dataframe(trace)
@@ -103,11 +105,12 @@ def print_fit_vals(trace):
 uncertainty = 0.1
 def run_fit(initial_guess, model):
     """
-    performs fit of a given model
+    Performs fit of a given model
     
-    Parameters: 
+    Inputs
         initial_guess: dictionary containing initial guess values
-    Returns:
+        
+    Returns
         best_fit: dictionary containing best fit values, covariance matrix, forward function and inital guess values
     """
     best_fit, scipy_output = pm.find_MAP(model=model, start = initial_guess, return_raw=True)
@@ -120,22 +123,24 @@ def run_fit(initial_guess, model):
 
 def calc_residuals(data, best_fit):
     """
-    calculates the residuals of a given fit 
+    Calculates the residuals of a given fit 
     
-    Parameters:
+    Inputs
         best_fit: dictionary containing best fit values (must contain 'prediction')
-    Returns:
+    
+    Returns
         ndarray of residuals 
     """
     return data.N_nue - best_fit['rate'].flatten()*data.N_numu
 
 def calc_chi_squared(data,best_fit):
     """
-    calculates chi squared for a given fit
+    Calculates chi squared for a given fit
     
-    Parameters: 
+    Inputs
         best_fit: dictionary containing best fit values
-    Returns: 
+    
+    Returns
         chi squared value (float)
     """
     residuals = calc_residuals(data,best_fit)/uncertainty
@@ -143,11 +148,12 @@ def calc_chi_squared(data,best_fit):
 
 def global_log_likelihood(data, best_fit):
     """
-    calculates the global log likelihood for a given fit
+    Calculates the global log likelihood for a given fit
     
-    Parameters:
+    Inputs
         best_fit: dictionary containing best fit values
-    Returns: 
+    
+    Returns 
         global log likelihood (float)
     """
     n_parameters = len(best_fit['initial guess'])
@@ -164,12 +170,13 @@ def global_log_likelihood(data, best_fit):
 
 def compute_odds(data,best_fit, previous_fit):
     """
-    calculates the odds ratio between two fits (current/previous)
+    Calculates the odds ratio between two fits (current/previous)
     
-    Parameters: 
+    Inputs
         best_fit: dictionary containing best fit values of current model
         previous_fit: dictionary containing best fit values of the previous model 
-    Returns:
+    
+    Returns
         nothing; prints global likelihood of current model and odds ratio
     """
     previous_log_like = global_log_likelihood(data,previous_fit)
