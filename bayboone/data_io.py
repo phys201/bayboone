@@ -13,11 +13,11 @@ class Data:
     def __init__(self, N_numu, N_nue, E): 
         """
         Inputs
-            N_numu: array of int
+            N_numu: int or numpy array of int
                 Number of muon neutrinos shot at the detector per energy bin.
-            N_nue: array of int int
+            N_nue: int or numpy array of int int
                 Number of electron neutrinos seen at the detector per energy bin.
-            E: array of floats
+            E: float or numpy array of floats
                 Center of energy bins of the incoming muon neutrinos in GeV
                 
         Returns
@@ -26,6 +26,15 @@ class Data:
         self.N_numu = N_numu
         self.N_nue = N_nue
         self.E = E
+        
+    def __repr__(self):
+        """
+        Formats the data object for print statements
+        """
+        print_str = 'E: '+str(self.E)+'\n'
+        print_str += 'N_numu: '+str(self.N_numu)+'\n'
+        print_str += 'N_nue: '+str(self.N_nue)
+        return print_str
         
     @classmethod
     def load(self, filename, data_dir='data'):
@@ -48,8 +57,8 @@ class Data:
         
     @classmethod   
     def simulate_detector(self, ss2t, dms, 
-                          N_numu = [600, 6000, 60000, 600000], 
-                          E_bin_edges = [0.01, 0.05, 1.5, 2.1, 3.0], 
+                          N_numu = np.array([600, 6000, 60000, 600000]), 
+                          E_bin_edges = np.array([0.01, 0.05, 1.5, 2.1, 3.0]), 
                           mu_L=0.5, sigma_L=.025):
         """
         Creates a Data object with simulated data based on parameters
@@ -61,9 +70,9 @@ class Data:
                 The oscillation paramter sin^2(2*theta)
             dms: float >= 0
                 The oscillation parameter delta m^2 (squared mass difference)
-            N_numu: array of int
+            N_numu: int or numpy array of int
                 Number of muon neutrinos shot at the detector per energy bin.
-            E_bin_edges: array of floats
+            E_bin_edges: float or numpy array of floats
                 Edges of energy bins in GeV. Must be len(N_numu)+1 in size
             mu_L: float >= 0 in meters
                 The detector baseline (distance from neutrino beam). For now,
@@ -75,13 +84,24 @@ class Data:
         Returns
             A Data object
         """
-        mu_E, sigma_E = GetEnergies(E_bin_edges)
-        
-        N_nue = []
-        for i in range(len(N_numu)):
-            N_nue.append(self.simulate_data(self, N_numu[i], ss2t, dms, 
-                                            mu_L, mu_E[i], sigma_L, sigma_E[i]))
-        
+        N_nue = None
+        if isinstance(E_bin_edges, np.ndarray) and isinstance(N_numu, np.ndarray):
+            if len(E_bin_edges) == len(N_numu)+1:
+                mu_E, sigma_E = GetEnergies(E_bin_edges)
+                N_nue = []
+                for i in range(len(N_numu)):
+                    N_nue.append(self.simulate_data(self, N_numu[i], ss2t, dms, 
+                                                    mu_L, mu_E[i], sigma_L, sigma_E[i]))
+            else:
+                raise Exception('Size of input arrays to not match. E_bin_edges must have len(N_numu)+1')
+        elif isinstance(E_bin_edges, float) and isinstance(N_numu, int):
+            mu_E = E_bin_edges
+            sigma_E = 0.01
+            N_nue = self.simulate_data(self, N_numu, ss2t, dms, 
+                                mu_L, mu_E, sigma_L, sigma_E)
+        else:
+            raise Exception('Invalid input') 
+
         return Data(N_numu, N_nue, mu_E)
 
     def simulate_data(self, N_numu, ss2t, dms, mu_L=0.5, mu_E=1.0, 
@@ -126,7 +146,6 @@ class Data:
             if r < P:
                 N_nue += 1
                 
-        print('Data: ',N_numu, N_nue)
         return N_nue
     
     def write_data(self, filename, data_dir='data'):
@@ -146,8 +165,8 @@ class Data:
         data_dir = os.path.join(get_data_dir(data_dir))
         file_path = os.path.join(data_dir, filename)
         df = pd.DataFrame({'E': self.E, 
-                           'N_numu':self.N_numu, 
-                           'N_nue':self.N_nue})
+                            'N_numu':self.N_numu, 
+                            'N_nue':self.N_nue})
         df.to_csv(file_path, index=False)
         return
     
@@ -210,18 +229,18 @@ def GetEnergies(E_bin_edges):
     the energy bins.
     
     Inputs
-        E_bin_edges: array of floats
+        E_bin_edges: numpy array of floats
             The energy bin edges in GeV
     
     Returns
-        mu_E: array of floats
+        mu_E: numpy array of floats
             The mean energy of each bin
-        sigma_E: array of floats
+        sigma_E: numpy array of floats
             The width of each bin
     """
     
     E_bin_edges = np.array(E_bin_edges)
-    mu_E = [0.5*(E_bin_edges[i]+E_bin_edges[i+1]) for i in range(len(E_bin_edges)-1)]
+    mu_E = np.array([0.5*(E_bin_edges[i]+E_bin_edges[i+1]) for i in range(len(E_bin_edges)-1)])
     sigma_E = np.diff(E_bin_edges)
     
     return mu_E, sigma_E
