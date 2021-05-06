@@ -159,9 +159,15 @@ class Data:
         """
         data_dir = os.path.join(get_data_dir(data_dir))
         file_path = os.path.join(data_dir, filename)
-        df = pd.DataFrame({'E': self.E, 
+        
+        if isinstance(self.N_numu, int):
+            df = pd.DataFrame({'E': self.E, 
                             'N_numu':self.N_numu, 
-                            'N_nue':self.N_nue})
+                            'N_nue':self.N_nue}, index=[0])
+        else:
+            df = pd.DataFrame({'E': self.E, 
+                                'N_numu':self.N_numu, 
+                                'N_nue':self.N_nue})
         df.to_csv(file_path, index=False)
         return
     
