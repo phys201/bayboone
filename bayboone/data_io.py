@@ -3,6 +3,7 @@ import random
 import csv
 import numpy as np
 import os
+import scipy.stats as stats
 
 class Data:
     """
@@ -105,7 +106,7 @@ class Data:
         return Data(N_numu, N_nue, mu_E)
 
     def simulate_data(self, N_numu, ss2t, dms, mu_L=0.5, mu_E=1.0, 
-                      sigma_L=.025, sigma_E=0.25, random_seed=True):
+                      sigma_L=.025, sigma_E=0.25):
         """
         Simulates data of how many muon neutrinos oscillate to electron 
         neutrinos based on given parameters for the experiment detector 
@@ -133,18 +134,12 @@ class Data:
             N_nue: integer
                 The number of electron neutrinos
         """
-        if not random_seed:
-            np.random.seed(random_seed)
+        L = stats.norm.rvs(mu_L, sigma_L, N_numu)
+        E = stats.norm.rvs(mu_E, sigma_E, N_numu)
+        P = OscProbability(ss2t, dms, L, E)
+        r = np.random.random(N_numu)
         
-        N_nue = 0
-        for _ in range(N_numu):
-            L = random.gauss(mu_L, sigma_L)
-            E = random.gauss(mu_E, sigma_E)
-            P = OscProbability(ss2t, dms, L, E)
-            r = np.random.random()
-
-            if r < P:
-                N_nue += 1
+        N_nue = sum(list(map(Oscillate, r, P)))
                 
         return N_nue
     
@@ -176,13 +171,13 @@ def OscProbability(ss2t, dms, L, E):
     electron neutrino for given experiment and oscillation parameters.
 
     Inputs 
-        ss2t: float between 0 and 1
+        ss2t: float or numpy array between 0 and 1
             The oscillation paramter sin^2(2*theta)
-        dms: float >= 0
+        dms: float or numpy array >= 0
             The oscillation parameter delta m^2 (squared mass difference)
-        L: float >= 0 in km
+        L: float or numpy array >= 0 in km
             Distance the muon neutrino traveled.
-        E: float >= 0 in GeV
+        E: float or numpy array >= 0 in GeV
             Energy of incoming muon neutrino.
 
     Returns
@@ -244,3 +239,9 @@ def GetEnergies(E_bin_edges):
     sigma_E = np.diff(E_bin_edges)
     
     return mu_E, sigma_E
+
+def Oscillate(r, P):
+    if r<P:
+        return 1
+    else:
+        return 0
