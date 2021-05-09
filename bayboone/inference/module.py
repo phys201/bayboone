@@ -9,6 +9,7 @@ UC = 1.27 #Unit conversion contsant in the oscillation probability
 def oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8, L = 0.5, std_L = 0.015, E = 1.0, std_E = 0.15):
     '''
     Creates a statistical model for predicting the oscillation parameters from microboone-like values
+
     Inputs:
     num_neutrinos: 
         The number of muon neutrinos shot at the detector
@@ -30,6 +31,7 @@ def oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8, L =
     Returns:
     osc_model: pymc3 model
         the statistical model for neutrino oscillations in the 3+1 model
+
     '''
     #Check that the data is reasonable
     if (num_neutrinos < num_nue):
@@ -66,7 +68,7 @@ def oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8, L =
         
         #Likelihood of observations
         measurements = pm.Poisson('nue_flux', mu = rate, observed = num_nue)
-        
+
     return osc_model
 
 def fit_model(num_neutrinos, num_nue, num_draws = 1000, initial_guess = None, 
@@ -293,28 +295,24 @@ def binned_fit_model(num_neutrinos, num_nue, energy_bins, num_draws = 1000, init
     osc_model = binned_oscillation_model(num_neutrinos, energy_bins, num_nue)
     with osc_model:
         trace = pm.sample(num_draws, start=initial_guess)
-        az.plot_trace(trace)
-        
+
     return trace
-                         
+
 def print_fit_vals(trace):
-    
+
     '''
-    literally just prints the best fit values and their uncertainties nicely
-    
-    Inputs:
-    trace: arviz InferenceData object
-        Holds the results from the mcmc sampling procedure
-    
+    Prints the best fit values and their uncertainties nicely
+
+    Inputs
+        trace: arviz InferenceData object
+            Holds the results from the mcmc sampling procedure
+
     '''
     df_trace = pm.trace_to_dataframe(trace)
     q = df_trace.quantile([0.16,0.50,0.84], axis=0)
-    
     print("delta_m^2 = {:.2f} + {:.2f} - {:.2f}".format(q['delta_m^2'][0.50], 
                                             q['delta_m^2'][0.84]-q['delta_m^2'][0.50],
                                             q['delta_m^2'][0.50]-q['delta_m^2'][0.16]))
-    print("sin^2_2theta = {:.1f} + {:.1f} - {:.1f}".format(q['sin^2_2theta'][0.50], 
+    print("sin^2_2theta = {:.1f} + {:.1f} - {:.1f}".format(q['sin^2_2theta'][0.50],
                                             q['sin^2_2theta'][0.84]-q['sin^2_2theta'][0.50],
                                             q['sin^2_2theta'][0.50]-q['sin^2_2theta'][0.16]))
-    
-    

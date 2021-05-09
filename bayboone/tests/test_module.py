@@ -206,4 +206,3 @@ class TestBinnedInference(TestCase):
         num_nue = [1, 1, 1]   
         num_numu= 100
         self.assertRaises(ValueError, module.binned_fit_model, num_numu, num_nue, bad_bins)    
-
