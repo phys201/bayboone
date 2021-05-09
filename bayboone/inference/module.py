@@ -6,7 +6,7 @@ import arviz as az
 
 UC = 1.27 #Unit conversion contsant in the oscillation probability
 
-def oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8, L = 0.5, std_L = 0.15, E = 1.0, std_E = 0.15):
+def oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8, L = 0.5, std_L = 0.015, E = 1.0, std_E = 0.15):
     '''
     Creates a statistical model for predicting the oscillation parameters from microboone-like values
     Inputs:
@@ -69,7 +69,7 @@ def oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8, L =
         
     return osc_model
 
-def fit_model(num_neutrinos, num_nue, num_draws = 10000, initial_guess = None, 
+def fit_model(num_neutrinos, num_nue, num_draws = 1000, initial_guess = None, 
               est_ss2t = 0.5, est_dms = 0.8, L = 0.5, std_L = 0.15, E = 1.0, std_E = 0.15):
     '''
     Fits a given model to data provided using MCMC sampling
@@ -144,12 +144,13 @@ def fit_model(num_neutrinos, num_nue, num_draws = 10000, initial_guess = None,
         
     return trace
 
-def binned_oscillation_model(num_neutrinos, num_nue, energy_bins, est_ss2t = 0.5, est_dms = 0.8):
+def binned_oscillation_model(num_neutrinos, num_nue, energy_bins, initial_guess = None, est_ss2t = 0.5, est_dms = 0.8, L = 0.5, std_L = 0.015):
     '''
     Creates a statistical model for predicting the oscillation parameters from microboone-like values
     Inputs:
-    num_neutrinos: array of floats
+    num_neutrinos: float or array of floats
         The number of muon neutrinos shot at the detector in each energy bin
+        To see a single rate curve, use a float. To see an island fit for each chain, use and array of floats.
     num_nue: array of floats
         The number of electron neutrinos detected in each energy bin
     energy_bins: array of floats, size at least 2
@@ -163,39 +164,80 @@ def binned_oscillation_model(num_neutrinos, num_nue, energy_bins, est_ss2t = 0.5
         the statistical model for our neutrino oscillations in the 3+1 model with multiple energy bins
     '''
     
-    #Check that the data is reasonable
-    if (num_neutrinos < num_nue.any()):
+    #Check fewer nues than numus
+    all_nue = np.sum(num_nue)
+    all_numu = np.sum(num_neutrinos)
+    if (all_numu<all_nue):
         raise ValueError("Error: number of initial neutrinos cannot be less than number of nues observed")
-    energies = np.zeros(energy_bins.size-1)
-    for i in range(energies.size):
-        energies[i] = (energy_bins[i+1]-energy_bins[i])/2
+    
+    from collections.abc import Iterable
+    if(isinstance(num_neutrinos, Iterable)):
+        for k in enumerate(num_neutrinos):
+            if (k[1]<num_nue[k[0]]):
+                raise ValueError("Error: number of initial neutrinos in a bin cannot be less than number of nues observed in that bin")
+
+    #Check num_nue has correct shape
+    if (len(num_nue) != len(energy_bins)-1):
+        raise ValueError("Error: Please specify on value for number of nues observed per energy bin")   
         
+    # Check energy bins are in order
+    energy_bins = np.array(energy_bins)
+    if((energy_bins != sorted(energy_bins)).all()):
+        raise ValueError("Error: Bin edges must be in order low-high")
+
+    #Check model inputs (as in osc_model)
+    if (est_ss2t>1 or est_ss2t<0 or est_dms<0):
+        raise ValueError("Error: estimated sin^2(2theta) must be between 0 and 1, and estimated delta m^2 must be greater than zero")
+    if (L<0 or std_L<0):
+        raise ValueError("Error: L and std_L must be greater than zero")
+        
+    #Check any initial guess keys represent actual model parameters
+    allowed_keys = {'L', 'sin^2_2theta', 'delta_m^2', 'rate'}
+    if(initial_guess != None):
+        for key in initial_guess:
+            if key in allowed_keys:
+                continue
+            else: 
+                raise ValueError("Incorrect Key: allowed keys for initial guess are: 'L', 'sin^2_2theta', 'delta_m^2', 'rate'")
+
+   
+    energies = np.zeros(energy_bins.size-1)
+    sigmas = np.zeros(energy_bins.size-1)
+    for i in range(energies.size):
+        energies[i] = energy_bins[i] + (energy_bins[i+1]-energy_bins[i])/2
+        sigmas[i] = (energy_bins[i+1]-energy_bins[i]) # Most energy reconstructions aim for the standard deviation to be about the bin width. 
+    
     energies_high = np.array(energy_bins[1:])
     energies_low = np.array(energy_bins[:-1])
 
     osc_model = pm.Model()
     with osc_model:
-        
-        # We don't know the exact energy or production point of each neutrino, so we draw from a truncated gaussian 
-        # (enforcing positive distance travelled and energy)   
-        L = pm.TruncatedNormal('L', mu = 0.500, sigma = 0.15, lower = 0, upper = 0.6) #units of km
-        E = pm.TruncatedNormal('E', mu = energies , sigma = 0.15, lower = 0, upper = 10) #units of GeV
-        #E = pm.Uniform('E', energies_low, energies_high)
-        
+        est_ss2t = 0.01
+        est_dms = 10
+
+
+        # We don't know the exact production point of each neutrino, so we draw from a truncated gaussian (enforcing positive distance travelled)   
+        L = pm.TruncatedNormal('L', mu = 0.540, sigma = 0.015, lower = 0.02, upper = 0.6) #units of km
+
+        #If this works, we'll have one E distribution for each energy bin
+        #E = energies #
+        E = pm.TruncatedNormal('E', mu = energies, sigma = sigmas, lower = energies_low, shape=energies.shape[0]) #units of GeV
+
         # Priors for unknown model parameters, centered on a prior estimate of ss2t, dms
+        # Est_ss2t, est_dms defined in previous cell, will be input parameters in our function
         ss2t = pm.TruncatedNormal('sin^2_2theta', mu = est_ss2t, sigma = 0.1, lower = 0, upper = 1 ) #pm.Uniform('sin^2_2theta', 0.0001, 1)
-        dms = pm.TruncatedNormal('delta_m^2', mu = est_dms, sigma = 0.1, lower = 0, upper = E*np.pi/(1.27*L))
-        #This limits the inferred point to only the first of the delta m^2 values that would fit the function, eliminating periodicity.
-        
+        dms = pm.TruncatedNormal('delta_m^2', mu = est_dms, sigma = 0.1, lower = 0, shape = (1))
+
         # In the large n limit, because the number of oscillations is low, we use a Poisson approximation
-        rate = pm.Deterministic('rate', num_neutrinos*ss2t*(np.sin(dms*(1.27*L)/E))**2)
-        
+        rate = pm.Deterministic('rate', ss2t*(np.sin(dms*(UC*L)/E))**2)
+
         #Likelihood of observations
-        measurements = pm.Poisson('nue_flux', mu = rate, observed = num_nue)
+        measurements = pm.Poisson('nue_flux', mu = rate*num_neutrinos, observed = num_nue)
         
     return osc_model
 
-def binned_fit_model(num_neutrinos, num_nue, energy_bins, num_draws = 10000):
+def binned_fit_model(num_neutrinos, num_nue, energy_bins, num_draws = 1000, initial_guess=None,
+              est_ss2t = 0.5, est_dms = 0.8, L = 0.5, std_L = 0.015):
     '''
     Fits a given model to data provided using MCMC sampling
     
@@ -214,10 +256,41 @@ def binned_fit_model(num_neutrinos, num_nue, energy_bins, num_draws = 10000):
         results of the mcmc sampling procedure
         
         '''
-    uncertainty = np.sqrt(num_nue)
-    osc_model = binned_oscillation_model(num_neutrinos, energy_bins, num_nue)
-    initial_guess = {'L': 0.5, 'E': 0.5, 'sin^2_2theta': 0.3, 'delta_m^2': 1}
+    # Check energy bins are in order
+    energy_bins = np.array(energy_bins)
+    if(energy_bins != energy_bins.sort()):
+        raise ValueError("Error: Bin edges must be in order low-high")
+        
+    #Check that the data is reasonable
+    if (num_neutrinos < num_nue):
+        raise ValueError("Error: number of initial neutrinos cannot be less than number of nues observed")
     
+    #Check model inputs (as in osc_model)
+    if (est_ss2t>1 or est_ss2t<0 or est_dms<0):
+        raise ValueError("Error: estimated sin^2(2theta) must be between 0 and 1, and estimated delta m^2 must be greater than zero")
+    if (L<0 or std_L<0):
+        raise ValueError("Error: L and std_L must be greater than zero")
+        
+    #Check any initial guess keys represent actual model parameters
+    allowed_keys = {'L', 'sin^2_2theta', 'delta_m^2', 'rate'}
+    for key in initial_guess:
+        if key in allowed_keys:
+            continue
+        else: 
+            raise ValueError("Incorrect Key: allowed keys for initial guess are: 'L', 'sin^2_2theta', 'delta_m^2', 'rate'")
+            
+    #Check initial guesses, if provided, are physical
+    if 'L' in initial_guess:
+        if initial_guess['L']<0: raise ValueError("Error: Guess for L cannot be less than zero")
+    if 'sin^2_2theta' in initial_guess:
+        if (initial_guess['sin^2_2theta']<0 or initial_guess['sin^2_2theta']>1): raise ValueError("Error: Guess for sin^2(2theta) must be between 0 and 1")
+    if 'delta_m^2' in initial_guess:
+        if initial_guess['delta_m^2']<0: raise ValueError("Error: Guess for delta_m^2 cannot be less than zero")
+    if 'rate' in initial_guess:
+        if initial_guess['rate']<0: raise ValueError("Error: Guess for rate cannot be less than zero")
+ 
+        
+    osc_model = binned_oscillation_model(num_neutrinos, energy_bins, num_nue)
     with osc_model:
         trace = pm.sample(num_draws, start=initial_guess)
         az.plot_trace(trace)
