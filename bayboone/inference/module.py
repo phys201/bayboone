@@ -128,15 +128,15 @@ def fit_model(num_neutrinos, num_nue, num_draws = 1000, initial_guess = None,
                 raise ValueError("Incorrect Key: allowed keys for initial guess are: 'E', 'L', 'sin^2_2theta', 'delta_m^2', 'rate'")
         #Check initial guesses, if provided, are physical
         if 'E' in initial_guess:
-            if initial_guess.get('E')[0]<0: raise ValueError("Error: Guess for E cannot be less than zero")
+            if initial_guess.get('E')<0: raise ValueError("Error: Guess for E cannot be less than zero")
         if 'L' in initial_guess:
-            if initial_guess.get('L')[0]<0: raise ValueError("Error: Guess for L cannot be less than zero")
+            if initial_guess.get('L')<0: raise ValueError("Error: Guess for L cannot be less than zero")
         if 'sin^2_2theta' in initial_guess:
-            if (initial_guess.get('sin^2_2theta')[0]<0 or initial_guess.get('sin^2_2theta')[0]>1): raise ValueError("Error: Guess for sin^2(2theta) must be between 0 and 1")
+            if (initial_guess.get('sin^2_2theta')<0 or initial_guess.get('sin^2_2theta')>1): raise ValueError("Error: Guess for sin^2(2theta) must be between 0 and 1")
         if 'delta_m^2' in initial_guess:
-            if initial_guess.get('delta_m^2')[0]<0: raise ValueError("Error: Guess for delta_m^2 cannot be less than zero")
+            if initial_guess.get('delta_m^2')<0: raise ValueError("Error: Guess for delta_m^2 cannot be less than zero")
         if 'rate' in initial_guess:
-            if initial_guess.get('rate')[0]<0: raise ValueError("Error: Guess for rate cannot be less than zero")
+            if initial_guess.get('rate')<0: raise ValueError("Error: Guess for rate cannot be less than zero")
 
     
     uncertainty = np.sqrt(num_nue)

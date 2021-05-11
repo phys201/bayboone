@@ -168,9 +168,9 @@ class TestBinnedInference(TestCase):
         self.assertRaises(ValueError, module.binned_fit_model, TestBinnedInference.num_numu, TestBinnedInference.num_nue,bins, initial_guess ={'rate': -1.0})                    
             
     def test_rejects_unresonable_inputs(self):        
-        num_numu, num_nue = (10, 22)         
+        num_numu = 10        
         bins = [0, 1, 2, 3]
-        num_nue = [1, 1, 1] 
+        num_nue = [11, 1, 1] 
         self.assertRaises(ValueError, module.binned_fit_model, num_numu, num_nue, bins)
         
     def test_rejects_unphysical_mixing_params(self):     
