@@ -20,10 +20,26 @@ class Data:
                 Number of electron neutrinos seen at the detector per energy bin.
             E: float or numpy array of floats
                 Center of energy bins of the incoming muon neutrinos in GeV
-                
-        Returns
-            None
         """
+        # Check inputs
+        if isinstance(N_numu, int) and isinstance(N_nue, int) and isinstance(E, float):
+            if N_numu<=0 or N_nue<0 or N_numu<=N_nue: 
+                raise ValueError('N_numu must be less than N_nue, N_numu must be greater than zero, N_nue must be equal or greater than zero.')
+            if E <= 0.0:
+                raise ValueError('Energy must be greater than 0')
+        elif isinstance(N_numu, np.ndarray) and isinstance(N_nue, np.ndarray) and isinstance(E, np.ndarray):
+            if len(N_numu) != len(N_nue) or len(N_nue) != len(E):
+                raise ValueError('N_numu, N_nue, and E must have same length')
+                
+            elif (N_numu <= 0).any() or (N_nue < 0).any() or (E <= 0.0).any():
+                raise ValueError('Values must be greater or equal to zero. N_numu cannot be zero')
+                
+            elif N_numu.dtype != np.dtype('int64'):
+                raise ValueError('N_numu must contain all integers')
+        else:
+            raise ValueError('N_numu, N_nue, and E must be single int, int, float or numpy arrays')
+            
+        
         self.N_numu = N_numu
         self.N_nue = N_nue
         self.E = E
@@ -54,18 +70,31 @@ class Data:
         filepath = get_data_file_path(filename)
         data = pd.read_csv(filepath)
         
-        return Data(data.N_numu, data.N_nue, data.E)
+        col_names = np.array(['E', 'N_numu', 'N_nue'])
+        if not np.array_equal(np.array(data.columns), col_names):
+            raise ValueError('Data file not in correct format')
+            
+        if len(data.N_numu) > 1:
+            N_numu = np.array(data.N_numu)
+            N_nue = np.array(data.N_nue)
+            E = np.array(data.E)
+        else:
+            N_numu = int(data.N_numu)
+            N_nue = int(data.N_nue)
+            E = float(data.E)
+        print(N_numu, N_nue, E)
+        return Data(N_numu, N_nue, E)
         
     @classmethod   
     def simulate_detector(self, ss2t, dms, 
-                          N_numu = np.array([600, 6000, 60000, 600000]), 
-                          E_bin_edges = np.array([0.01, 0.05, 1.5, 2.1, 3.0]), 
+                          N_numu = np.array([60, 600, 6000, 60000, 600000]), 
+                          E_bin_edges = np.array([0.01, 0.4, 0.6, 1.0, 1.5, 2]), 
                           mu_L=0.5, sigma_L=.025):
         """
         Creates a Data object with simulated data based on parameters
         given for some detector. Defaults are set to match the
         Microboone detector.
-        
+
         Inputs 
             ss2t: float between 0 and 1
                 The oscillation paramter sin^2(2*theta)
@@ -81,39 +110,47 @@ class Data:
                 by the muon neutrinos. 
             sigma_L: float
                 Standard deviation of beamline, L
-            
+                
         Returns
             A Data object
         """
-        N_nue = None
+
+        # Checking correct type of input
+        is_array = False
         if isinstance(E_bin_edges, np.ndarray) and isinstance(N_numu, np.ndarray):
-            if len(E_bin_edges) == len(N_numu)+1:
-                mu_E, sigma_E = GetEnergies(E_bin_edges)
-                N_nue = []
-                for i in range(len(N_numu)):
-                    N_nue.append(self.simulate_data(self, N_numu[i], ss2t, dms, 
-                                                    mu_L, mu_E[i], sigma_L, sigma_E[i]))
-            else:
-                raise Exception('Size of input arrays to not match. E_bin_edges must have len(N_numu)+1')
-        elif isinstance(E_bin_edges, float) and isinstance(N_numu, int):
-            mu_E = E_bin_edges
-            sigma_E = 0.01
-            N_nue = self.simulate_data(self, N_numu, ss2t, dms, 
-                                mu_L, mu_E, sigma_L, sigma_E)
+            is_array = True
+            if len(E_bin_edges) != len(N_numu)+1:
+                raise ValueError('E_bin_edges must be len(N_numu)+1 in length')
+            elif N_numu.dtype != np.dtype('int64'):
+                raise ValueError('N_numu must contain all integers')
+        elif not isinstance(N_numu, int):
+            raise ValueError('N_numu must be integer')
+        
+        N_nue = None
+        if is_array:
+            mu_E, sigma_E = GetEnergies(E_bin_edges)
+            N_nue = []
+            for i in range(len(N_numu)):
+                N_nue.append(self.simulate_data(self, N_numu[i], ss2t, dms, 
+                                                mu_L, mu_E[i], sigma_L, sigma_E[i]))
+            N_nue = np.array(N_nue)
+
         else:
-            raise Exception('Invalid input') 
+            mu_E = E_bin_edges
+            sigma_E = .1
+            N_nue = self.simulate_data(self, N_numu, ss2t, dms, 
+                                mu_L, mu_E, sigma_L, sigma_E) 
 
         return Data(N_numu, N_nue, mu_E)
 
-    def simulate_data(self, N_numu, ss2t, dms, mu_L=0.5, mu_E=1.0, 
-                      sigma_L=.025, sigma_E=0.25):
+    def simulate_data(self, N_numu, ss2t, dms, mu_L=0.5, mu_E=1.0, sigma_L=.025, sigma_E=0.25):
         """
         Simulates data of how many muon neutrinos oscillate to electron 
         neutrinos based on given parameters for the experiment detector 
         and beamline. 
         
         Inputs
-            N_numu: int
+            N_numu: int 
                 Number of muon neutrinos shot at the detector. 
             ss2t: float between 0 and 1
                 The oscillation paramter sin^2(2*theta)
@@ -134,8 +171,25 @@ class Data:
             N_nue: integer
                 The number of electron neutrinos
         """
-        L = stats.norm.rvs(mu_L, sigma_L, N_numu)
-        E = stats.norm.rvs(mu_E, sigma_E, N_numu)
+
+        # Check values that are not checked elsewhere
+        if N_numu <= 0 or not isinstance(N_numu, int):
+            raise ValueError('N_numu must be an integer greater than 0')
+        
+        if mu_L < 0.0:
+            raise ValueError('mu_L must be equal or greater than 0')
+        
+        if mu_E <=0.0:
+            raise ValueError('mu_E must be greater than 0')
+  
+        if sigma_L<=0.0:
+            raise ValueError('sigma_L must be float equal or greater than0.0')
+            
+        if sigma_E<=0.0:
+            raise ValueError('sigma_E must be float equal or greater than 0.0')
+            
+        L = stats.truncnorm.rvs(a=(-mu_L)/sigma_L, b=np.inf, loc=mu_L, scale=sigma_L, size=N_numu) 
+        E = stats.truncnorm.rvs(a=(-mu_E)/sigma_E, b=np.inf, loc=mu_E, scale=sigma_E, size=N_numu) 
         P = OscProbability(ss2t, dms, L, E)
         r = np.random.random(N_numu)
         
@@ -181,7 +235,7 @@ def OscProbability(ss2t, dms, L, E):
             The oscillation paramter sin^2(2*theta)
         dms: float or numpy array >= 0
             The oscillation parameter delta m^2 (squared mass difference)
-        L: float or numpy array >= 0 in km
+        L: float >= 0 in km
             Distance the muon neutrino traveled.
         E: float or numpy array >= 0 in GeV
             Energy of incoming muon neutrino.
@@ -190,6 +244,24 @@ def OscProbability(ss2t, dms, L, E):
         Oscillation probability (float between 0 and 1)
 
     """
+    if ss2t<0.0 or ss2t>1.0:
+            raise ValueError('ss2t must be float between 0.0 and 1.0')
+
+    if dms<0.0:
+        raise ValueError('dms must be float equal or greater than 0.0')
+        
+    if not isinstance(L, np.ndarray):
+        if L<0.0:
+            raise ValueError('L must be float equal or greater tna 0.0')
+    elif (L<=0.0).any():
+        raise ValueError('All values of L must be greater than or equal to 0.0')
+        
+    if not isinstance(E, np.ndarray):
+        if E <= 0.0:
+            raise ValueError('E must be greater than 0.0')
+    elif (E<=0.0).any():
+        raise ValueError('All values of E must be greater than 0.0')
+    
     return ss2t * np.sin((1.27*L/E)*dms)**2
 
 def get_data_file_path(filename, data_dir='data'):
@@ -239,6 +311,12 @@ def GetEnergies(E_bin_edges):
         sigma_E: numpy array of floats
             The width of each bin
     """
+    if not isinstance(E_bin_edges, np.ndarray):
+        raise ValueError('E_bin_edges must be numpy array')
+    if (E_bin_edges <= 0.0).any():
+        raise ValueError('No energy bin edges can be less than 0.0')
+    if (np.diff(E_bin_edges) <= 0.0).all():
+        raise ValueError('Energy bin edges must be in increasing order')
     
     E_bin_edges = np.array(E_bin_edges)
     mu_E = np.array([0.5*(E_bin_edges[i]+E_bin_edges[i+1]) for i in range(len(E_bin_edges)-1)])
@@ -247,7 +325,20 @@ def GetEnergies(E_bin_edges):
     return mu_E, sigma_E
 
 def Oscillate(r, P):
+    """
+    Oscillated based on random number r and 
+    probability P
+    
+    Inputs
+        r: float between 0 and 1
+            random number
+        P: float between 0 and 1
+            Probability of oscillation
+    Returns
+        0 if no oscillation, 1 if oscillated
+    """
     if r<P:
         return 1
     else:
         return 0
+
