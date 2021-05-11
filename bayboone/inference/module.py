@@ -3,6 +3,7 @@ import pandas as pd
 import pymc3 as pm
 import matplotlib.pyplot as plt
 import arviz as az
+from collections.abc import Iterable
 
 UC = 1.27 #Unit conversion contsant in the oscillation probability
 
@@ -119,24 +120,24 @@ def fit_model(num_neutrinos, num_nue, num_draws = 1000, initial_guess = None,
         
     #Check any initial guess keys represent actual model parameters
     allowed_keys = {'E', 'L', 'sin^2_2theta', 'delta_m^2', 'rate'}
-    for key in initial_guess:
-        if key in allowed_keys:
-            continue
-        else: 
-            raise ValueError("Incorrect Key: allowed keys for initial guess are: 'E', 'L', 'sin^2_2theta', 'delta_m^2', 'rate'")
-            
-    #Check initial guesses, if provided, are physical
-    if 'L' in initial_guess:
-        if initial_guess['L']<0: raise ValueError("Error: Guess for L cannot be less than zero")
-    if 'E' in initial_guess:
-        if initial_guess['E']<0: raise ValueError("Error: Guess for E cannot be less than zero")
-    if 'sin^2_2theta' in initial_guess:
-        if (initial_guess['sin^2_2theta']<0 or initial_guess['sin^2_2theta']>1): raise ValueError("Error: Guess for sin^2(2theta) must be between 0 and 1")
-    if 'delta_m^2' in initial_guess:
-        if initial_guess['delta_m^2']<0: raise ValueError("Error: Guess for delta_m^2 cannot be less than zero")
-    if 'rate' in initial_guess:
-        if initial_guess['rate']<0: raise ValueError("Error: Guess for rate cannot be less than zero")
- 
+    if (initial_guess !=None):
+        for key in initial_guess:
+            if key in allowed_keys:
+                continue
+            else: 
+                raise ValueError("Incorrect Key: allowed keys for initial guess are: 'E', 'L', 'sin^2_2theta', 'delta_m^2', 'rate'")
+        #Check initial guesses, if provided, are physical
+        if 'E' in initial_guess:
+            if initial_guess.get('E')<0: raise ValueError("Error: Guess for E cannot be less than zero")
+        if 'L' in initial_guess:
+            if initial_guess.get('L')<0: raise ValueError("Error: Guess for L cannot be less than zero")
+        if 'sin^2_2theta' in initial_guess:
+            if (initial_guess.get('sin^2_2theta')<0 or initial_guess.get('sin^2_2theta')>1): raise ValueError("Error: Guess for sin^2(2theta) must be between 0 and 1")
+        if 'delta_m^2' in initial_guess:
+            if initial_guess.get('delta_m^2')<0: raise ValueError("Error: Guess for delta_m^2 cannot be less than zero")
+        if 'rate' in initial_guess:
+            if initial_guess.get('rate')<0: raise ValueError("Error: Guess for rate cannot be less than zero")
+
     
     uncertainty = np.sqrt(num_nue)
     osc_model = oscillation_model(num_neutrinos, num_nue, est_ss2t, est_dms, L , std_L, E, std_E)
@@ -172,15 +173,14 @@ def binned_oscillation_model(num_neutrinos, num_nue, energy_bins, initial_guess 
     if (all_numu<all_nue):
         raise ValueError("Error: number of initial neutrinos cannot be less than number of nues observed")
     
-    from collections.abc import Iterable
     if(isinstance(num_neutrinos, Iterable)):
         for k in enumerate(num_neutrinos):
             if (k[1]<num_nue[k[0]]):
                 raise ValueError("Error: number of initial neutrinos in a bin cannot be less than number of nues observed in that bin")
 
     #Check num_nue has correct shape
-    if (len(num_nue) != len(energy_bins)-1):
-        raise ValueError("Error: Please specify on value for number of nues observed per energy bin")   
+    if (len(num_nue) != (len(energy_bins)-1)):
+        raise ValueError("Error: Please specify one value for number of nues observed per energy bin")   
         
     # Check energy bins are in order
     energy_bins = np.array(energy_bins)
@@ -217,7 +217,6 @@ def binned_oscillation_model(num_neutrinos, num_nue, energy_bins, initial_guess 
         est_ss2t = 0.01
         est_dms = 10
 
-
         # We don't know the exact production point of each neutrino, so we draw from a truncated gaussian (enforcing positive distance travelled)   
         L = pm.TruncatedNormal('L', mu = 0.540, sigma = 0.015, lower = 0.02, upper = 0.6) #units of km
 
@@ -228,7 +227,7 @@ def binned_oscillation_model(num_neutrinos, num_nue, energy_bins, initial_guess 
         # Priors for unknown model parameters, centered on a prior estimate of ss2t, dms
         # Est_ss2t, est_dms defined in previous cell, will be input parameters in our function
         ss2t = pm.TruncatedNormal('sin^2_2theta', mu = est_ss2t, sigma = 0.1, lower = 0, upper = 1 ) #pm.Uniform('sin^2_2theta', 0.0001, 1)
-        dms = pm.TruncatedNormal('delta_m^2', mu = est_dms, sigma = 0.1, lower = 0, shape = (1))
+        dms = pm.TruncatedNormal('delta_m^2', mu = est_dms, sigma = 0.1, lower = 0)
 
         # In the large n limit, because the number of oscillations is low, we use a Poisson approximation
         rate = pm.Deterministic('rate', ss2t*(np.sin(dms*(UC*L)/E))**2)
@@ -260,12 +259,20 @@ def binned_fit_model(num_neutrinos, num_nue, energy_bins, num_draws = 1000, init
         '''
     # Check energy bins are in order
     energy_bins = np.array(energy_bins)
-    if(energy_bins != energy_bins.sort()):
+    sorted_bins = np.sort(energy_bins)
+    if((energy_bins != sorted_bins).any()):
         raise ValueError("Error: Bin edges must be in order low-high")
         
-    #Check that the data is reasonable
-    if (num_neutrinos < num_nue):
+    #Check fewer nues than numus
+    all_nue = np.sum(num_nue)
+    all_numu = np.sum(num_neutrinos)
+    if (all_numu<all_nue):
         raise ValueError("Error: number of initial neutrinos cannot be less than number of nues observed")
+    
+    if(isinstance(num_neutrinos, Iterable)):
+        for k in enumerate(num_neutrinos):
+            if (k[1]<num_nue[k[0]]):
+                raise ValueError("Error: number of initial neutrinos in a bin cannot be less than number of nues observed in that bin")
     
     #Check model inputs (as in osc_model)
     if (est_ss2t>1 or est_ss2t<0 or est_dms<0):
@@ -275,24 +282,25 @@ def binned_fit_model(num_neutrinos, num_nue, energy_bins, num_draws = 1000, init
         
     #Check any initial guess keys represent actual model parameters
     allowed_keys = {'L', 'sin^2_2theta', 'delta_m^2', 'rate'}
-    for key in initial_guess:
-        if key in allowed_keys:
-            continue
-        else: 
-            raise ValueError("Incorrect Key: allowed keys for initial guess are: 'L', 'sin^2_2theta', 'delta_m^2', 'rate'")
-            
-    #Check initial guesses, if provided, are physical
-    if 'L' in initial_guess:
-        if initial_guess['L']<0: raise ValueError("Error: Guess for L cannot be less than zero")
-    if 'sin^2_2theta' in initial_guess:
-        if (initial_guess['sin^2_2theta']<0 or initial_guess['sin^2_2theta']>1): raise ValueError("Error: Guess for sin^2(2theta) must be between 0 and 1")
-    if 'delta_m^2' in initial_guess:
-        if initial_guess['delta_m^2']<0: raise ValueError("Error: Guess for delta_m^2 cannot be less than zero")
-    if 'rate' in initial_guess:
-        if initial_guess['rate']<0: raise ValueError("Error: Guess for rate cannot be less than zero")
- 
+    if(initial_guess != None):
+        for key in initial_guess:
+            if key in allowed_keys:
+                continue
+            else: 
+                raise ValueError("Incorrect Key: allowed keys for initial guess are: 'L', 'sin^2_2theta', 'delta_m^2', 'rate'")
+
+        #Check initial guesses, if provided, are physical
+        if 'L' in initial_guess:
+            if initial_guess.get('L')<0: raise ValueError("Error: Guess for L cannot be less than zero")
+        if 'sin^2_2theta' in initial_guess:
+            if (initial_guess.get('sin^2_2theta')<0 or initial_guess.get('sin^2_2theta')>1): raise ValueError("Error: Guess for sin^2(2theta) must be between 0 and 1")
+        if 'delta_m^2' in initial_guess:
+            if initial_guess.get('delta_m^2')<0: raise ValueError("Error: Guess for delta_m^2 cannot be less than zero")
+        if 'rate' in initial_guess:
+            if initial_guess.get('rate')<0: raise ValueError("Error: Guess for rate cannot be less than zero")
+
         
-    osc_model = binned_oscillation_model(num_neutrinos, energy_bins, num_nue)
+    osc_model = binned_oscillation_model(num_neutrinos, num_nue, energy_bins)
     with osc_model:
         trace = pm.sample(num_draws, start=initial_guess)
 
