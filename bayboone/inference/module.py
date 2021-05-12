@@ -7,7 +7,7 @@ from collections.abc import Iterable
 
 UC = 1.27 #Unit conversion contsant in the oscillation probability
 
-def oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8, L = 0.5, std_L = 0.015, E = 1.0, std_E = 0.15):
+def oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8, L = 0.54, std_L = 0.015, E = 1.0, std_E = 0.15):
     '''
     Creates a statistical model for predicting the oscillation parameters from microboone-like values
 
