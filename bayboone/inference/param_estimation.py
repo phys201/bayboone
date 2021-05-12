@@ -57,8 +57,8 @@ def oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8, L =
         E = pm.TruncatedNormal('E', mu = E, sigma = std_E, lower = 0) #units of GeV
         
         # Priors for unknown model parameters, centered on a prior estimate of ss2t, dms
-        ss2t = pm.TruncatedNormal('sin^2_2theta', mu = est_ss2t, sigma = 0.1, lower = 0, upper = 1 ) #pm.Uniform('sin^2_2theta', 0.0001, 1)
-        dms = pm.TruncatedNormal('delta_m^2', mu = est_dms, sigma = 0.1, lower = 0, upper = E*np.pi/(1.27*L))
+        ss2t = pm.TruncatedNormal('sin^2_2theta', mu = est_ss2t, sigma = 0.5, lower = 0, upper = 1 ) #pm.Uniform('sin^2_2theta', 0.0001, 1)
+        dms = pm.TruncatedNormal('delta_m^2', mu = est_dms, sigma = 0.5, lower = 0, upper = E*np.pi/(1.27*L))
         #"upper" limits the inferred point to only the first of the delta m^2 values that would fit the function, eliminating periodicity.
         
         # In the large n limit, because the number of oscillations is low, we use a Poisson approximation
@@ -211,8 +211,6 @@ def binned_oscillation_model(num_neutrinos, num_nue, energy_bins, initial_guess 
 
     osc_model = pm.Model()
     with osc_model:
-        est_ss2t = 0.01
-        est_dms = 10
 
         # We don't know the exact production point of each neutrino, so we draw from a truncated gaussian (enforcing positive distance travelled)   
         L = pm.TruncatedNormal('L', mu = 0.540, sigma = 0.015, lower = 0.02, upper = 0.6) #units of km
