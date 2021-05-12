@@ -1,6 +1,5 @@
 from unittest import TestCase
 from bayboone.data_io import Data
-import random
 import numpy as np
 
 class TestIo(TestCase):
@@ -191,17 +190,16 @@ class TestSimulateDetector(TestCase):
     def test_bad_array_input_N_numu(self):
         ss2t = 0.5
         dms = 1.0
-        E_bin_edges = [1.0, 2.0, 3.0]
-        bad_N_numu_list = [[-1,1], [0,1], [1.5,1], [1]]
+        E_bin_edges = np.array([1.0, 2.0, 3.0])
+        bad_N_numu_list = [np.array([-1,1]), np.array([0,1]), np.array([1.5,1]), np.array([1]), [10, 20]]
         for bad_N_numu in bad_N_numu_list:
             self.assertRaises(ValueError, Data.simulate_detector, ss2t, dms, bad_N_numu, E_bin_edges)
         
     def test_bad_array_input_E(self):
         ss2t = 0.5
         dms = 1.0
-        N_numu = [10,10]
-        E_bin_edges = [1.0, 2.0, 3.0]
-        bad_E_bin_edges_list = [[0.0, 0.0, 2.0], [-1.0, 1.0, 2.0], [2.0, 1.0, 0.0], [1.0, 2.0]]
+        N_numu = np.array([10,10])
+        bad_E_bin_edges_list = [np.array([0.0, 0.0, 2.0]), np.array([-1.0, 1.0, 2.0]), np.array([2.0, 1.0, 0.0]), np.array([1.0, 2.0]), [1.0, 2.0, 3.0]]
         for bad_E_bin_edges in bad_E_bin_edges_list:
             self.assertRaises(ValueError, Data.simulate_detector, ss2t, dms, N_numu, bad_E_bin_edges)
 
