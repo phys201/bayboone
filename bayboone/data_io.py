@@ -82,7 +82,7 @@ class Data:
             N_numu = int(data.N_numu)
             N_nue = int(data.N_nue)
             E = float(data.E)
-        print(N_numu, N_nue, E)
+
         return Data(N_numu, N_nue, E)
         
     @classmethod   
