@@ -82,7 +82,7 @@ class Data:
             N_numu = int(data.N_numu)
             N_nue = int(data.N_nue)
             E = float(data.E)
-        print(N_numu, N_nue, E)
+
         return Data(N_numu, N_nue, E)
         
     @classmethod   
@@ -131,31 +131,31 @@ class Data:
             mu_E, sigma_E = GetEnergies(E_bin_edges)
             N_nue = []
             for i in range(len(N_numu)):
-                N_nue.append(self.simulate_data(self, N_numu[i], ss2t, dms, 
+                N_nue.append(self.simulate_data(self, ss2t, dms, int(N_numu[i]), 
                                                 mu_L, mu_E[i], sigma_L, sigma_E[i]))
             N_nue = np.array(N_nue)
 
         else:
             mu_E = E_bin_edges
             sigma_E = .1
-            N_nue = self.simulate_data(self, N_numu, ss2t, dms, 
+            N_nue = self.simulate_data(self, ss2t, dms, N_numu,
                                 mu_L, mu_E, sigma_L, sigma_E) 
 
         return Data(N_numu, N_nue, mu_E)
 
-    def simulate_data(self, N_numu, ss2t, dms, mu_L=0.5, mu_E=1.0, sigma_L=.025, sigma_E=0.25):
+    def simulate_data(self, ss2t, dms, N_numu, mu_L=0.5, mu_E=1.0, sigma_L=.025, sigma_E=0.25):
         """
         Simulates data of how many muon neutrinos oscillate to electron 
         neutrinos based on given parameters for the experiment detector 
         and beamline. 
         
         Inputs
-            N_numu: int 
-                Number of muon neutrinos shot at the detector. 
             ss2t: float between 0 and 1
                 The oscillation paramter sin^2(2*theta)
             dms: float >= 0
                 The oscillation parameter delta m^2 (squared mass difference)
+            N_numu: int 
+                Number of muon neutrinos shot at the detector. 
             mu_L: float >= 0 in km
                 The detector baseline (distance from neutrino beam). For now,
                 I am considering the basline as the average distance traveled
