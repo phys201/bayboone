@@ -70,7 +70,7 @@ def oscillation_model(num_neutrinos, num_nue, est_ss2t = 0.5, est_dms = 0.8, L =
     return osc_model
 
 def fit_model(num_neutrinos, num_nue, num_draws = 1000, initial_guess = None, 
-              est_ss2t = 0.5, est_dms = 0.8, L = 0.5, std_L = 0.015, E = 1.0, std_E = 0.15):
+              est_ss2t = 0.5, est_dms = 0.8, L = 0.54, std_L = 0.015, E = 1.0, std_E = 0.15):
     '''
     Fits a given model to data provided using MCMC sampling
     
@@ -144,7 +144,7 @@ def fit_model(num_neutrinos, num_nue, num_draws = 1000, initial_guess = None,
         
     return trace
 
-def binned_oscillation_model(num_neutrinos, num_nue, energy_bins, initial_guess = None, est_ss2t = 0.5, est_dms = 0.8, L = 0.5, std_L = 0.015):
+def binned_oscillation_model(num_neutrinos, num_nue, energy_bins, initial_guess = None, est_ss2t = 0.5, est_dms = 0.8, L = 0.54, std_L = 0.015):
     '''
     Creates a statistical model for predicting the oscillation parameters from microboone-like values
     Inputs:
@@ -233,7 +233,7 @@ def binned_oscillation_model(num_neutrinos, num_nue, energy_bins, initial_guess 
     return osc_model
 
 def binned_fit_model(num_neutrinos, num_nue, energy_bins, num_draws = 1000, initial_guess=None,
-              est_ss2t = 0.5, est_dms = 0.8, L = 0.5, std_L = 0.015):
+              est_ss2t = 0.5, est_dms = 0.8, L = 0.54, std_L = 0.015):
     '''
     Fits a given model to data provided using MCMC sampling
     

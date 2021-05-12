@@ -86,9 +86,9 @@ class Data:
         
     @classmethod   
     def simulate_detector(self, ss2t, dms, 
-                          N_numu = np.array([60, 600, 6000, 60000, 600000]), 
+                          N_numu = np.array([6000, 6000, 6000, 6000, 600]), 
                           E_bin_edges = np.array([0.01, 0.4, 0.6, 1.0, 1.5, 2]), 
-                          mu_L=0.5, sigma_L=.015):
+                          mu_L=0.54, sigma_L=.015):
         """
         Creates a Data object with simulated data based on parameters
         given for some detector. Defaults are set to match the
@@ -141,7 +141,7 @@ class Data:
 
         return Data(N_numu, N_nue, mu_E)
 
-    def simulate_data(self, ss2t, dms, N_numu, mu_L=0.5, mu_E=1.0, sigma_L=.015, sigma_E=0.15):
+    def simulate_data(self, ss2t, dms, N_numu, mu_L=0.54, mu_E=1.0, sigma_L=.015, sigma_E=0.15):
         """
         Simulates data of how many muon neutrinos oscillate to electron 
         neutrinos based on given parameters for the experiment detector 
