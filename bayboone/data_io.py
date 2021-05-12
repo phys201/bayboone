@@ -1,5 +1,4 @@
 import pandas as pd
-import random
 import csv
 import numpy as np
 import os
@@ -82,14 +81,14 @@ class Data:
             N_numu = int(data.N_numu)
             N_nue = int(data.N_nue)
             E = float(data.E)
-        print(N_numu, N_nue, E)
+
         return Data(N_numu, N_nue, E)
         
     @classmethod   
     def simulate_detector(self, ss2t, dms, 
                           N_numu = np.array([60, 600, 6000, 60000, 600000]), 
                           E_bin_edges = np.array([0.01, 0.4, 0.6, 1.0, 1.5, 2]), 
-                          mu_L=0.5, sigma_L=.025):
+                          mu_L=0.5, sigma_L=.015):
         """
         Creates a Data object with simulated data based on parameters
         given for some detector. Defaults are set to match the
@@ -131,31 +130,30 @@ class Data:
             mu_E, sigma_E = GetEnergies(E_bin_edges)
             N_nue = []
             for i in range(len(N_numu)):
-                N_nue.append(self.simulate_data(self, N_numu[i], ss2t, dms, 
+                N_nue.append(self.simulate_data(self, ss2t, dms, int(N_numu[i]), 
                                                 mu_L, mu_E[i], sigma_L, sigma_E[i]))
             N_nue = np.array(N_nue)
 
         else:
             mu_E = E_bin_edges
-            sigma_E = .1
-            N_nue = self.simulate_data(self, N_numu, ss2t, dms, 
-                                mu_L, mu_E, sigma_L, sigma_E) 
+            N_nue = self.simulate_data(self, ss2t, dms, N_numu,
+                                mu_L, mu_E, sigma_L) 
 
         return Data(N_numu, N_nue, mu_E)
 
-    def simulate_data(self, N_numu, ss2t, dms, mu_L=0.5, mu_E=1.0, sigma_L=.025, sigma_E=0.25):
+    def simulate_data(self, ss2t, dms, N_numu, mu_L=0.5, mu_E=1.0, sigma_L=.015, sigma_E=0.15):
         """
         Simulates data of how many muon neutrinos oscillate to electron 
         neutrinos based on given parameters for the experiment detector 
         and beamline. 
         
         Inputs
-            N_numu: int 
-                Number of muon neutrinos shot at the detector. 
             ss2t: float between 0 and 1
                 The oscillation paramter sin^2(2*theta)
             dms: float >= 0
                 The oscillation parameter delta m^2 (squared mass difference)
+            N_numu: int 
+                Number of muon neutrinos shot at the detector. 
             mu_L: float >= 0 in km
                 The detector baseline (distance from neutrino beam). For now,
                 I am considering the basline as the average distance traveled
@@ -244,18 +242,16 @@ def OscProbability(ss2t, dms, L, E):
         Oscillation probability (float between 0 and 1)
 
     """
+    # Check Inputs
     if ss2t<0.0 or ss2t>1.0:
             raise ValueError('ss2t must be float between 0.0 and 1.0')
-
     if dms<0.0:
         raise ValueError('dms must be float equal or greater than 0.0')
-        
     if not isinstance(L, np.ndarray):
         if L<0.0:
             raise ValueError('L must be float equal or greater tna 0.0')
     elif (L<=0.0).any():
         raise ValueError('All values of L must be greater than or equal to 0.0')
-        
     if not isinstance(E, np.ndarray):
         if E <= 0.0:
             raise ValueError('E must be greater than 0.0')
@@ -311,6 +307,7 @@ def GetEnergies(E_bin_edges):
         sigma_E: numpy array of floats
             The width of each bin
     """
+    # Check input
     if not isinstance(E_bin_edges, np.ndarray):
         raise ValueError('E_bin_edges must be numpy array')
     if (E_bin_edges <= 0.0).any():
